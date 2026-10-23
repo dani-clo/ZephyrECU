@@ -1,0 +1,4 @@
+name: can_if
+build:
+  cmake: .
+  kconfig: Kconfig

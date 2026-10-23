@@ -1,0 +1,6 @@
+config CAN_COMM
+	bool "ZephyrECU can_comm component"
+	depends on CAN_IF
+	help
+	  Enable the local can_comm component. Functionality is added in its
+	  implementation phase; the bootstrap only verifies module discovery.

@@ -1,0 +1,4 @@
+name: diag_uds
+build:
+  cmake: .
+  kconfig: Kconfig

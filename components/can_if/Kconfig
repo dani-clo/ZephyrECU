@@ -1,0 +1,6 @@
+config CAN_IF
+	bool "ZephyrECU can_if component"
+	depends on CAN
+	help
+	  Enable the local can_if component. Functionality is added in its
+	  implementation phase; the bootstrap only verifies module discovery.

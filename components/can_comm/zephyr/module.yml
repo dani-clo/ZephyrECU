@@ -1,0 +1,4 @@
+name: can_comm
+build:
+  cmake: .
+  kconfig: Kconfig

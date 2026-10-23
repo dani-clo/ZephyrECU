@@ -1,0 +1,6 @@
+config DIAG_UDS
+	bool "ZephyrECU diag_uds component"
+	depends on CAN_IF && !ISOTP
+	help
+	  Enable the local diag_uds component. Functionality is added in its
+	  implementation phase; the bootstrap only verifies module discovery.

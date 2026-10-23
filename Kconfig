@@ -1,0 +1,3 @@
+mainmenu "ZephyrECU"
+
+source "Kconfig.zephyr"

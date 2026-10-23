@@ -1,0 +1,20 @@
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+    - name: driftregion
+      url-base: https://github.com/driftregion
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      revision: v4.4.2
+      import:
+        name-allowlist:
+          - cmsis_6
+          - hal_nxp
+    - name: iso14229
+      remote: driftregion
+      revision: 8a7eb23d6ab9d52f66ce36b07ba456613709c78e
+      path: modules/lib/iso14229
+  self:
+    path: ZephyrECU
