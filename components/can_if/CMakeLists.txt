@@ -1,1 +1,6 @@
-# Module discovery stub. Sources are added in the can_if implementation phase.
+if(CONFIG_CAN_IF)
+  zephyr_library()
+  zephyr_library_sources(src/can_if.c)
+  zephyr_include_directories(include)
+  zephyr_library_compile_options(-Wall -Wextra)
+endif()

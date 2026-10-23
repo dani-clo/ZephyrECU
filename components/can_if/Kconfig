@@ -1,6 +1,34 @@
-config CAN_IF
-	bool "ZephyrECU can_if component"
+menuconfig CAN_IF
+	bool "ZephyrECU CAN interface"
 	depends on CAN
 	help
-	  Enable the local can_if component. Functionality is added in its
-	  implementation phase; the bootstrap only verifies module discovery.
+	  Single Classical CAN controller owner with bounded RX dispatch and TX.
+
+if CAN_IF
+
+config CAN_IF_RX_QUEUE_SIZE
+	int "RX frame queue capacity"
+	default 32
+	range 1 256
+
+config CAN_IF_MAX_ROUTES
+	int "Maximum distinct CAN ID/type routes"
+	default 8
+	range 1 64
+
+config CAN_IF_MAX_CONSUMERS
+	int "Maximum callbacks per route"
+	default 4
+	range 1 16
+
+config CAN_IF_DISPATCH_STACK_SIZE
+	int "RX dispatcher stack size"
+	default 2048
+	range 1024 16384
+
+config CAN_IF_DISPATCH_PRIORITY
+	int "RX dispatcher preemptive priority"
+	default 5
+	range 0 14
+
+endif
