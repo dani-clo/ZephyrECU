@@ -11,6 +11,7 @@
 LOG_MODULE_REGISTER(diag_uds);
 
 #define P2_MS 50U
+#define RESPONSE_PACING_MS 1U
 #define P2_STAR_MS 5000U
 #define S3_MS 5100U
 #define HANDLER_CAPACITY 128U
@@ -324,8 +325,10 @@ static void worker(void *a, void *b, void *c)
 		.poll = poll_transport};
 	server.tp = &admitted_transport;
 	server.fn = server_event;
-	/* Leave scheduling margin within the P2=50 ms advertised to the tester. */
-	server.p2_ms = P2_MS - 5;
+	/* Upstream rearms p2_timer after sending: keep its internal pacing short.
+	 * Advertised P2 and the request deadline remain independent at 50 ms.
+	 */
+	server.p2_ms = RESPONSE_PACING_MS;
 	server.p2_star_ms = P2_STAR_MS;
 	server.s3_ms = S3_MS;
 	server.p2_timer = UDSMillis();

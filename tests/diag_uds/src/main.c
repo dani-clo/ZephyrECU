@@ -202,9 +202,23 @@ static void queue_overflow(void)
 	expect((uint8_t[]){0x7f, 0x22, 0x22}, 3);
 }
 
+static void immediate_response_latency(void)
+{
+	/* Consecutive requests expose upstream's rearmed response pacing timer. */
+	for (size_t i = 0; i < 4; ++i) {
+		int64_t request_time = k_uptime_get();
+
+		inject((uint8_t[]){0x3e, 0}, 2);
+		expect((uint8_t[]){0x7e, 0}, 2);
+		zassert_true(k_uptime_get() - request_time <= 8,
+			     "Immediate handler response delayed by internal pacing");
+	}
+}
+
 ZTEST(diag_uds, test_contract)
 {
 	lifecycle_and_port();
+	immediate_response_latency();
 	inject((uint8_t[]){0x22, 0, 1}, 3);
 	expect((uint8_t[]){0x62, 0, 1, 0x11, 0x22}, 5);
 	inject((uint8_t[]){0x31, 1, 0, 1}, 4);

@@ -151,7 +151,8 @@ This test takes about 15 seconds, including real session timeout waits. It check
 session control, TesterPresent, read-only DIDs, a benign LED routine, NRCs,
 functional addressing, requests and responses spanning multiple CAN frames,
 malformed traffic, transport timeout recovery and concurrent raw application CAN.
-It checks first-response P2 against 50 ms and reports the largest worker poll gap.
+It checks first-response P2 against 50 ms, verifies consecutive immediate
+responses within 10 ms, and reports the largest worker poll gap.
 The exerciser starts/stops automatically; use an isolated `unshare` shell as in
 the raw CAN test if desired. Stop other ECU processes using the same IDs first.
 

@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--interface", default="vcan0")
     args = parser.parse_args()
     logs, frames, failures, latencies = [], [], [], []
+    immediate_latencies = []
     changed = threading.Condition()
     stop = threading.Event()
     raw = socket.socket(socket.PF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
@@ -83,7 +84,7 @@ def main():
     for thread in workers:
         thread.start()
 
-    def exchange(request, expected):
+    def exchange(request, expected, *, immediate=False):
         start = time.monotonic()
         tester.send(request)
         reply = tester.recv(4095)
@@ -94,6 +95,10 @@ def main():
                      if t >= start and ident == 0x7E8 and data and data[0] >> 4 in (0, 1))
         latencies.append(first - start)
         assert first - start <= 0.050, f"P2 exceeded: {(first - start) * 1000:.1f} ms"
+        if immediate:
+            immediate_latencies.append(first - start)
+            assert first - start <= 0.010, (
+                f"Immediate response delayed: {(first - start) * 1000:.1f} ms")
 
     def silence(request, functional=False):
         start = time.monotonic()
@@ -120,7 +125,9 @@ def main():
         traffic = threading.Thread(target=app_traffic, daemon=True)
         traffic.start()
         workers.append(traffic)
-        exchange(b"\x3E\x00", b"\x7E\x00")
+        # Repeated short requests catch unnecessary inter-response pacing.
+        for _ in range(5):
+            exchange(b"\x3E\x00", b"\x7E\x00", immediate=True)
         exchange(b"\x10\x03", b"\x50\x03\x00\x32\x01\xF4")
         exchange(b"\x22\xF1\x86", b"\x62\xF1\x86\x03")
         exchange(b"\x10\x02", b"\x7F\x10\x12")
@@ -198,6 +205,7 @@ def main():
         print("PASS: UDS services/NRCs, physical/functional policy, single/multi-frame,")
         print("      malformed requests, transport timeout recovery, S3/TesterPresent and concurrent CAN")
         print(f"Maximum measured P2 first-frame latency: {max(latencies) * 1000:.2f} ms")
+        print(f"Maximum immediate-response latency: {max(immediate_latencies) * 1000:.2f} ms")
         print(summary)
         passed = True
     finally:

@@ -79,8 +79,11 @@ the absolute 64-bit uptime tick count into microseconds before reducing to
 sub-millisecond scheduling. A tester's shorter STmin is conservatively exceeded
 by the worker's interval. The bundled transport handles wrap-aware deadlines.
 
-Advertised P2 is **50 ms**, P2* **5000 ms**, S3 **5100 ms**. The server uses a
-45 ms response pacing interval to leave scheduling margin inside advertised P2.
+Advertised P2 is **50 ms**, P2* **5000 ms**, S3 **5100 ms**. P2 is a maximum
+response time, not an intended delay. The pinned library rearms its `p2_timer`
+after sending a response, so its internal `server.p2_ms` is set independently to
+**1 ms**. Immediate handlers respond at the next eligible poll/TX opportunity;
+the 50 ms deadline remains available for scheduling and temporary TX contention.
 A pending response expires at the original request's P2 deadline. Every admitted
 request in an extended session refreshes S3, including TesterPresent with positive
 response suppression. S3 expiry returns the server to the default session.
