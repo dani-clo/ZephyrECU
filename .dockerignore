@@ -1,0 +1,5 @@
+**
+!Dockerfile.ci
+!tools/
+!tools/requirements-ci.lock
+!tools/docker_entrypoint.sh

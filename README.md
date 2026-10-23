@@ -8,6 +8,22 @@ and [diagnostic design](docs/diag-uds.md) for API details and limitations.
 
 ## Virtual test environment
 
+For a Docker-based setup on Linux x86_64, run from this repository:
+
+```sh
+./tools/run_docker.sh
+```
+
+The launcher builds the `zephyrecu-ci` image, runs all native Twister suites,
+CAN/UDS integration tests and an application smoke test. It creates `vcan0`
+inside the container and writes results to the workspace's `build/docker/`.
+Use `./tools/run_docker.sh --unit-only` to run without virtual CAN support.
+Only Docker is needed in userspace; integration tests also require the Docker
+host kernel to support vcan and CAN ISO-TP. See [container CI](docs/container-ci.md)
+for setup, options, dependency pinning and limitations.
+
+For a native setup, follow the instructions below.
+
 The virtual tests run on Linux with Zephyr `native_sim` and SocketCAN. No ECU
 hardware is required. Use Python >= 3.12 and a host GCC installation with 32-bit
 development support for the default `native_sim` target.
