@@ -72,10 +72,9 @@ jobs:
       - name: Setup virtual CAN
         run: |
           uname -r | tee build/logs/kernel.txt
-          if ! sudo modprobe vcan || ! sudo modprobe can-isotp; then
+          if ! sudo modprobe vcan; then
             sudo apt-get install -y "linux-modules-extra-$(uname -r)"
             sudo modprobe vcan
-            sudo modprobe can-isotp
           fi
           if ! ip link show dev vcan0 >/dev/null 2>&1; then
             sudo ip link add dev vcan0 type vcan
@@ -86,9 +85,44 @@ jobs:
           import socket
           with socket.socket(socket.PF_CAN, socket.SOCK_RAW, socket.CAN_RAW) as raw:
               raw.bind(("vcan0",))
-          with socket.socket(socket.PF_CAN, socket.SOCK_DGRAM, socket.CAN_ISOTP) as tester:
-              tester.bind(("vcan0", 0x7e8, 0x7e0))
-          print("SocketCAN and kernel ISO-TP available to the test user")
+          print("SocketCAN available to the test user")
+          PY
+
+      - name: Check kernel ISO-TP support
+        id: isotp
+        run: |
+          # Loading a module is optional: ISO-TP may be built into the kernel.
+          # Only the socket probe below determines whether to run the tester.
+          sudo modprobe can-isotp 2>&1 | tee build/logs/isotp-module.log || true
+          python - <<'PY' 2>&1 | tee build/logs/isotp-probe.log
+          import errno
+          import os
+          import socket
+          from pathlib import Path
+
+          try:
+              tester = socket.socket(socket.PF_CAN, socket.SOCK_DGRAM, socket.CAN_ISOTP)
+          except OSError as error:
+              if error.errno not in (errno.EPROTONOSUPPORT, errno.EAFNOSUPPORT):
+                  raise
+              available = False
+              message = f"UDS integration test skipped: kernel ISO-TP unavailable ({error})."
+              print(f"::warning::{message}")
+          else:
+              # Binding errors indicate broken setup and must fail the job.
+              with tester:
+                  tester.bind(("vcan0", 0x7e8, 0x7e0))
+              available = True
+              message = "Kernel ISO-TP available; UDS integration test enabled."
+              print(message)
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
+              output.write(f"available={str(available).lower()}\n")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
+              summary.write(f"{message}\n\n")
+              if not available:
+                  summary.write("UDS build, CAN/UDS unit tests, raw CAN integration and "
+                                "application smoke test remain required.\n")
           PY
 
       - name: CAN integration test
@@ -103,7 +137,7 @@ jobs:
             build/tests/can_if_socketcan/zephyr/zephyr.exe \
             --interface vcan0 2>&1 | tee build/logs/can-integration.log
 
-      - name: UDS integration test
+      - name: Build UDS integration exerciser
         run: |
           west build -b native_sim \
             -S socketcan-native-sim \
@@ -111,6 +145,9 @@ jobs:
             -d build/tests/diag_uds_socketcan \
             2>&1 | tee build/logs/uds-build.log
 
+      - name: UDS integration test
+        if: steps.isotp.outputs.available == 'true'
+        run: |
           # Shared runners are not real-time hosts. Protocol checks still fail
           # on errors; host timing is observed. ztest enforces pacing regression.
           timeout 120s python ZephyrECU/tools/test_uds_socketcan.py \

@@ -215,10 +215,21 @@ to `main` and pull requests. It also supports manual dispatch once registered on
 the default branch. Workflow changes and the test scripts must be committed and
 pushed before GitHub can execute them.
 
-The runner sets up `vcan0` with sudo. If CAN modules are missing, it installs
+The runner sets up `vcan0` with sudo. If the vcan module is missing, it installs
 `linux-modules-extra` for the running kernel, then verifies that the normal test
-user can bind both SocketCAN and kernel ISO-TP sockets. UDS host timing uses report
-mode; functional assertions and deterministic ztest timing checks remain enabled.
+user can bind a raw SocketCAN socket. This support is required for the CAN
+integration and application smoke tests.
+
+A separate socket probe checks kernel ISO-TP support, including support built
+directly into the kernel. If the protocol is unavailable, only execution of the
+UDS integration tester is skipped, with a warning, probe logs and a job summary
+entry. The UDS exerciser is still built, and all CAN/UDS unit tests, raw CAN
+integration and application smoke tests remain required. Unexpected probe errors
+and failures in enabled tests fail the job. The local Docker runner still
+requires ISO-TP support for its full test run.
+
+UDS host timing uses report mode; functional assertions and deterministic ztest
+timing checks remain enabled.
 The smoke test requires the application readiness log, since returning an error
 from Zephyr main does not necessarily make the simulator process fail.
 
