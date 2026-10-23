@@ -70,7 +70,10 @@ and dispatcher priority 5 allow the driver to receive confirmations promptly,
 while the worker sleeps between polls. Tick frequency must be at least 1000 Hz;
 the supplied configuration uses 1000 Hz. Poll count, largest poll gap and gaps
 of 5 ms or more are visible in diagnostic statistics. These are scheduling
-observations, not on-target timing certification.
+observations, not on-target timing certification. The host integration tester
+uses strict timing checks by default; `--timing report` records those observations
+without treating host scheduling delays as functional failures on shared runners.
+The simulated-time ztest response-pacing regression remains enforced.
 
 `UDSMillis()` returns absolute uptime milliseconds. `isotp_user_get_us()` converts
 the absolute 64-bit uptime tick count into microseconds before reducing to

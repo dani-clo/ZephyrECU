@@ -1,0 +1,144 @@
+name: ZephyrECU CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-sim:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      ZEPHYR_TOOLCHAIN_VARIANT: host
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: ZephyrECU
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare log directory
+        run: mkdir -p build/logs
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git cmake ninja-build gperf \
+            device-tree-compiler \
+            build-essential gcc-multilib g++-multilib \
+            iproute2 kmod can-utils
+
+      - name: Install west
+        run: python -m pip install west
+
+      - name: Initialize Zephyr workspace
+        run: |
+          west init -l ZephyrECU
+          west update --narrow -o=--depth=1
+          west manifest --validate
+
+      - name: Install Zephyr requirements
+        run: |
+          python -m pip install \
+            -r zephyr/scripts/requirements-base.txt \
+            -r zephyr/scripts/requirements-build-test.txt \
+            -r zephyr/scripts/requirements-run-test.txt
+
+      - name: Run unit tests
+        run: |
+          python zephyr/scripts/twister \
+            -T ZephyrECU/tests/can_if \
+            -T ZephyrECU/tests/diag_uds \
+            -p native_sim \
+            --outdir build/twister-contracts \
+            --inline-logs 2>&1 | tee build/logs/unit-tests.log
+
+      - name: Setup virtual CAN
+        run: |
+          uname -r | tee build/logs/kernel.txt
+          if ! sudo modprobe vcan || ! sudo modprobe can-isotp; then
+            sudo apt-get install -y "linux-modules-extra-$(uname -r)"
+            sudo modprobe vcan
+            sudo modprobe can-isotp
+          fi
+          if ! ip link show dev vcan0 >/dev/null 2>&1; then
+            sudo ip link add dev vcan0 type vcan
+          fi
+          sudo ip link set dev vcan0 up
+          ip -details link show vcan0 | tee build/logs/vcan.txt
+          python - <<'PY'
+          import socket
+          with socket.socket(socket.PF_CAN, socket.SOCK_RAW, socket.CAN_RAW) as raw:
+              raw.bind(("vcan0",))
+          with socket.socket(socket.PF_CAN, socket.SOCK_DGRAM, socket.CAN_ISOTP) as tester:
+              tester.bind(("vcan0", 0x7e8, 0x7e0))
+          print("SocketCAN and kernel ISO-TP available to the test user")
+          PY
+
+      - name: CAN integration test
+        run: |
+          west build -b native_sim \
+            -S socketcan-native-sim \
+            ZephyrECU/tests/can_if_socketcan \
+            -d build/tests/can_if_socketcan \
+            2>&1 | tee build/logs/can-build.log
+
+          timeout 90s python ZephyrECU/tools/test_can_if_socketcan.py \
+            build/tests/can_if_socketcan/zephyr/zephyr.exe \
+            --interface vcan0 2>&1 | tee build/logs/can-integration.log
+
+      - name: UDS integration test
+        run: |
+          west build -b native_sim \
+            -S socketcan-native-sim \
+            ZephyrECU/tests/diag_uds_socketcan \
+            -d build/tests/diag_uds_socketcan \
+            2>&1 | tee build/logs/uds-build.log
+
+          # Shared runners are not real-time hosts. Protocol checks still fail
+          # on errors; host timing is observed. ztest enforces pacing regression.
+          timeout 120s python ZephyrECU/tools/test_uds_socketcan.py \
+            build/tests/diag_uds_socketcan/zephyr/zephyr.exe \
+            --interface vcan0 --timing report \
+            2>&1 | tee build/logs/uds-integration.log
+
+      - name: Application smoke test
+        run: |
+          west build -b native_sim \
+            -S socketcan-native-sim \
+            ZephyrECU \
+            -d build/native_sim \
+            2>&1 | tee build/logs/application-build.log
+
+          # Returning from Zephyr main with an error need not fail the host process.
+          timeout 15s \
+            build/native_sim/zephyr/zephyr.exe \
+            --can-if=vcan0 -rt -stop_at=1 \
+            2>&1 | tee build/logs/application-smoke.log
+          grep -Fq 'ZephyrECU CAN and diagnostics ready' build/logs/application-smoke.log
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-sim-test-results
+          path: |
+            build/twister-contracts/
+            build/logs/
+          if-no-files-found: warn

@@ -17,9 +17,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("executable", type=Path)
     parser.add_argument("--interface", default="vcan0")
+    parser.add_argument("--timing", choices=("strict", "report"), default="strict",
+                        help="enforce host latency thresholds (default), or report them for shared CI runners")
     args = parser.parse_args()
     logs, frames, failures, latencies = [], [], [], []
     immediate_latencies = []
+    timing_violations = []
     changed = threading.Condition()
     stop = threading.Event()
     raw = socket.socket(socket.PF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
@@ -84,6 +87,12 @@ def main():
     for thread in workers:
         thread.start()
 
+    def check_timing(condition, message):
+        if not condition:
+            if args.timing == "strict":
+                raise AssertionError(message)
+            timing_violations.append(message)
+
     def exchange(request, expected, *, immediate=False):
         start = time.monotonic()
         tester.send(request)
@@ -94,11 +103,12 @@ def main():
         first = next(t for t, ident, data in frames
                      if t >= start and ident == 0x7E8 and data and data[0] >> 4 in (0, 1))
         latencies.append(first - start)
-        assert first - start <= 0.050, f"P2 exceeded: {(first - start) * 1000:.1f} ms"
+        check_timing(first - start <= 0.050,
+                     f"P2 exceeded: {(first - start) * 1000:.1f} ms")
         if immediate:
             immediate_latencies.append(first - start)
-            assert first - start <= 0.010, (
-                f"Immediate response delayed: {(first - start) * 1000:.1f} ms")
+            check_timing(first - start <= 0.010,
+                         f"Immediate response delayed: {(first - start) * 1000:.1f} ms")
 
     def silence(request, functional=False):
         start = time.monotonic()
@@ -197,7 +207,9 @@ def main():
         values = {key: int(value) for key, value in re.findall(r"(\w+)=(\d+)", summary)}
         assert values["invalid"] >= 5 and values["transport_errors"] >= 3, summary
         assert values["dropped"] == values["can_drops"] == values["tx_errors"] == 0, summary
-        assert values["max_poll_us"] < 5000 and values["poll_misses"] == 0, summary
+        check_timing(values["max_poll_us"] < 5000 and values["poll_misses"] == 0,
+                     f"Worker scheduling gaps: max={values['max_poll_us']} us, "
+                     f"misses={values['poll_misses']}")
         assert not failures and not any("APP_TX_FAILED" in line for line in logs), failures
         echoes = [data[0] for _, cid, data in frames if cid == 0x321]
         assert echoes == list(range(256)), (len(echoes), echoes[-5:])
@@ -206,6 +218,11 @@ def main():
         print("      malformed requests, transport timeout recovery, S3/TesterPresent and concurrent CAN")
         print(f"Maximum measured P2 first-frame latency: {max(latencies) * 1000:.2f} ms")
         print(f"Maximum immediate-response latency: {max(immediate_latencies) * 1000:.2f} ms")
+        print(f"Timing policy: {args.timing}")
+        for violation in timing_violations:
+            print(f"TIMING observation (not a functional failure): {violation}")
+        if args.timing == "report":
+            print("Host timing is reported only; deterministic pacing regression remains in ztest.")
         print(summary)
         passed = True
     finally:

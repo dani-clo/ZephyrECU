@@ -153,6 +153,12 @@ functional addressing, requests and responses spanning multiple CAN frames,
 malformed traffic, transport timeout recovery and concurrent raw application CAN.
 It checks first-response P2 against 50 ms, verifies consecutive immediate
 responses within 10 ms, and reports the largest worker poll gap.
+The default `--timing strict` enforces the host latency and worker-gap thresholds.
+For shared CI runners, pass `--timing report`: latency observations are printed
+without failing the functional test. Protocol responses, NRCs, payloads, traffic
+ordering, queue/error counters and session behavior are still checked. The
+simulated-time pacing regression remains mandatory in ztest.
+
 The exerciser starts/stops automatically; use an isolated `unshare` shell as in
 the raw CAN test if desired. Stop other ECU processes using the same IDs first.
 
@@ -184,3 +190,22 @@ The native argument parser requires `--can-if=vcan0`, with `=`; its default
 interface is `zcan0`. Keep the selected interface up. The pinned native driver
 can leave TX pending after a host write failure; restart the simulator if that
 occurs. Physical bus-off and electrical behavior require hardware testing.
+
+## GitHub Actions
+
+The workflow in `.github/workflows/ci.yml` runs unit tests, raw CAN and UDS
+integration tests, and the application smoke test on `ubuntu-24.04` for pushes
+to `main` and pull requests. It also supports manual dispatch once registered on
+the default branch. Workflow changes and the test scripts must be committed and
+pushed before GitHub can execute them.
+
+The runner sets up `vcan0` with sudo. If CAN modules are missing, it installs
+`linux-modules-extra` for the running kernel, then verifies that the normal test
+user can bind both SocketCAN and kernel ISO-TP sockets. UDS host timing uses report
+mode; functional assertions and deterministic ztest timing checks remain enabled.
+The smoke test requires the application readiness log, since returning an error
+from Zephyr main does not necessarily make the simulator process fail.
+
+The `native-sim-test-results` artifact includes Twister reports and build/runtime
+logs from `build/logs/`, including failures. A successful local run does not verify
+module availability or package installation on the GitHub runner image.
