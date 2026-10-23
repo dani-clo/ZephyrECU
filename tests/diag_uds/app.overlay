@@ -1,0 +1,9 @@
+/ {
+	chosen {
+		zephyr,canbus = &fake_can;
+	};
+	fake_can: fake-can {
+		compatible = "zephyr,fake-can";
+		status = "okay";
+	};
+};

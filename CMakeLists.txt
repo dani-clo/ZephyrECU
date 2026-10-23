@@ -10,6 +10,6 @@ project(ZephyrECU LANGUAGES C)
 
 set_property(TARGET app PROPERTY C_STANDARD 17)
 set_property(TARGET app PROPERTY C_STANDARD_REQUIRED ON)
-target_sources(app PRIVATE src/main.c app/src/app_led.c)
+target_sources(app PRIVATE src/main.c app/src/app_led.c app/src/app_diag.c)
 target_include_directories(app PRIVATE app/include)
 target_compile_options(app PRIVATE -Wall -Wextra)

@@ -8,4 +8,8 @@ int app_led_init(void);
 int app_led_set(bool on);
 bool app_led_get(void);
 
+/* Separate RGB channel reserved for the benign diagnostic routine. */
+int app_led_diag_set(bool on);
+bool app_led_diag_get(void);
+
 #endif

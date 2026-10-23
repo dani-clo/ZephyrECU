@@ -1,0 +1,10 @@
+tests:
+  zephyrecu.diag_uds.contract:
+    platform_allow:
+      - native_sim
+    integration_platforms:
+      - native_sim
+    tags:
+      - can
+      - uds
+    timeout: 30

@@ -2,8 +2,9 @@
 
 Lightweight automotive ECU framework on Zephyr RTOS, without AUTOSAR.
 The CAN interface provides exact RX filtering, software fanout, bounded RX dispatch,
-nonblocking raw TX and error counters. See the [CAN interface contract](docs/can-if.md)
-for API details and limitations.
+nonblocking raw TX and error counters. The UDS server uses iso14229 with bundled
+ISO-TP on the same controller. See the [CAN interface contract](docs/can-if.md)
+and [diagnostic design](docs/diag-uds.md) for API details and limitations.
 
 ## Virtual test environment
 
@@ -52,17 +53,19 @@ root, with the virtual environment active.
 
 ## Unit tests
 
-Run the CAN interface contract test through Twister:
+Run the CAN interface and diagnostic contract tests through Twister:
 
 ```sh
 ZEPHYR_TOOLCHAIN_VARIANT=host python zephyr/scripts/twister \
-  -T ZephyrECU/tests/can_if -p native_sim --outdir build/twister-can-if --inline-logs
+  -T ZephyrECU/tests/can_if -T ZephyrECU/tests/diag_uds -p native_sim \
+  --outdir build/twister-contracts --inline-logs
 ```
 
-This test uses Zephyr's fake CAN driver and requires no virtual CAN interface.
-It checks filter sharing and capacity, frame validation, ISR/thread context,
-buffer ownership, queue overflow, TX submission/completion errors and bus-off
-notifications. Twister writes results under `build/twister-can-if/`.
+These tests use Zephyr's fake CAN driver and require no virtual CAN interface.
+They check filter sharing and capacity, frame validation, ISR/thread context,
+buffer ownership, queue overflow, TX errors, bus-off notifications, diagnostic
+registration, handler NRCs, backpressure and absolute-time wraparound. Twister
+writes results under `build/twister-contracts/`.
 
 ## SocketCAN integration tests
 
@@ -130,6 +133,28 @@ RX filter. Extended ID `0x123` responds on extended `0x1ABCDE`. ID `0x124`
 deliberately blocks the test dispatcher for 200 ms to exercise overflow. These
 raw test behaviors belong to the exerciser, not the main application.
 
+## UDS integration test
+
+The UDS test requires Linux kernel ISO-TP support (`CONFIG_CAN_ISOTP`) and Python's
+`socket.CAN_ISOTP`. The ECU itself uses bundled `isotp-c`, with Zephyr ISO-TP
+disabled. With `vcan0` up, build the real-stack diagnostic exerciser and run:
+
+```sh
+ZEPHYR_TOOLCHAIN_VARIANT=host west build -b native_sim -S socketcan-native-sim \
+  ZephyrECU/tests/diag_uds_socketcan -d build/tests/diag_uds_socketcan \
+  -- -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+python ZephyrECU/tools/test_uds_socketcan.py \
+  build/tests/diag_uds_socketcan/zephyr/zephyr.exe --interface vcan0
+```
+
+This test takes about 15 seconds, including real session timeout waits. It checks
+session control, TesterPresent, read-only DIDs, a benign LED routine, NRCs,
+functional addressing, requests and responses spanning multiple CAN frames,
+malformed traffic, transport timeout recovery and concurrent raw application CAN.
+It checks first-response P2 against 50 ms and reports the largest worker poll gap.
+The exerciser starts/stops automatically; use an isolated `unshare` shell as in
+the raw CAN test if desired. Stop other ECU processes using the same IDs first.
+
 ## Application smoke test
 
 Build and run the application with its in-memory LED backend:
@@ -141,9 +166,18 @@ ZEPHYR_TOOLCHAIN_VARIANT=host west build -b native_sim -S socketcan-native-sim \
 ```
 
 Expected logs include `LED initialized: off (memory backend)` and
-`ZephyrECU CAN interface ready`. The main application initializes CAN without
-registering raw echo routes. `can_comm` and `diag_uds` are discovery stubs;
-iso14229 is fetched but not compiled. Zephyr's `CONFIG_ISOTP` remains disabled.
+`ZephyrECU CAN and diagnostics ready`. The application initializes diagnostic
+routes and demonstration handlers without raw echo routes. `can_comm` remains
+a discovery stub. Zephyr's `CONFIG_ISOTP` remains disabled.
+
+To try diagnostics manually, omit `-stop_at=1` and run `candump vcan0` in another
+terminal. Send `cansend vcan0 7E0#023E00` for TesterPresent; expect
+`7E8#027E00`. Send `cansend vcan0 7E0#043101F001` to toggle the diagnostic LED;
+the positive response ends in its state byte. Physical request/response IDs are
+`0x7E0`/`0x7E8`, functional request ID `0x7DF`. DID `0xF190` returns the demo
+identity and DID `0xF186` returns the session byte; use an ISO-TP tester to receive
+segmented identity responses. Full DID/RID contracts are in the
+[diagnostic design](docs/diag-uds.md).
 
 The native argument parser requires `--can-if=vcan0`, with `=`; its default
 interface is `zcan0`. Keep the selected interface up. The pinned native driver

@@ -8,16 +8,18 @@
 #if !defined(CONFIG_BOARD_NATIVE_SIM)
 #include <zephyr/drivers/gpio.h>
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
+static const struct gpio_dt_spec diag_led = GPIO_DT_SPEC_GET(DT_ALIAS(led1), gpios);
 #endif
 
 LOG_MODULE_REGISTER(app_led);
 static atomic_t led_on;
+static atomic_t diag_led_on;
 static bool initialized;
 
 int app_led_init(void)
 {
 #if !defined(CONFIG_BOARD_NATIVE_SIM)
-	if (!gpio_is_ready_dt(&led)) {
+	if (!gpio_is_ready_dt(&led) || !gpio_is_ready_dt(&diag_led)) {
 		return -ENODEV;
 	}
 	int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
@@ -25,8 +27,13 @@ int app_led_init(void)
 	if (ret != 0) {
 		return ret;
 	}
+	ret = gpio_pin_configure_dt(&diag_led, GPIO_OUTPUT_INACTIVE);
+	if (ret != 0) {
+		return ret;
+	}
 #endif
 	atomic_clear(&led_on);
+	atomic_clear(&diag_led_on);
 	initialized = true;
 	LOG_INF("LED initialized: off (%s)",
 		IS_ENABLED(CONFIG_BOARD_NATIVE_SIM) ? "memory backend" : "DT led0");
@@ -53,4 +60,26 @@ int app_led_set(bool on)
 bool app_led_get(void)
 {
 	return atomic_get(&led_on) != 0;
+}
+
+int app_led_diag_set(bool on)
+{
+	if (!initialized) {
+		return -EACCES;
+	}
+#if !defined(CONFIG_BOARD_NATIVE_SIM)
+	int ret = gpio_pin_set_dt(&diag_led, on);
+
+	if (ret != 0) {
+		return ret;
+	}
+#endif
+	atomic_set(&diag_led_on, on);
+	LOG_INF("Diagnostic LED %s", on ? "on" : "off");
+	return 0;
+}
+
+bool app_led_diag_get(void)
+{
+	return atomic_get(&diag_led_on) != 0;
 }

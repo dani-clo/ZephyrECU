@@ -1,6 +1,48 @@
-config DIAG_UDS
-	bool "ZephyrECU diag_uds component"
+menuconfig DIAG_UDS
+	bool "ZephyrECU UDS server with bundled isotp-c"
 	depends on CAN_IF && !ISOTP
-	help
-	  Enable the local diag_uds component. Functionality is added in its
-	  implementation phase; the bootstrap only verifies module discovery.
+	depends on SYS_CLOCK_TICKS_PER_SEC >= 1000
+
+if DIAG_UDS
+
+config DIAG_UDS_PHYSICAL_RX_ID
+	hex "Physical request CAN ID"
+	default 0x7e0
+	range 0x0 0x7ff
+
+config DIAG_UDS_PHYSICAL_TX_ID
+	hex "Physical response CAN ID"
+	default 0x7e8
+	range 0x0 0x7ff
+
+config DIAG_UDS_FUNCTIONAL_RX_ID
+	hex "Functional request CAN ID"
+	default 0x7df
+	range 0x0 0x7ff
+
+config DIAG_UDS_RX_QUEUE_SIZE
+	int "Diagnostic RX queue capacity"
+	default 32
+	range 1 256
+
+config DIAG_UDS_MAX_HANDLERS
+	int "Maximum handlers per DID/RID registry"
+	default 8
+	range 1 32
+
+config DIAG_UDS_STACK_SIZE
+	int "Diagnostic worker stack size"
+	default 4096
+	range 2048 16384
+
+config DIAG_UDS_PRIORITY
+	int "Diagnostic worker preemptive priority"
+	default 4
+	range 0 14
+
+config DIAG_UDS_POLL_MS
+	int "Diagnostic polling interval (ms)"
+	default 1
+	range 1 2
+
+endif
