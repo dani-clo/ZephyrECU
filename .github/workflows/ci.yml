@@ -58,13 +58,19 @@ jobs:
           python -m pip install \
             -r zephyr/scripts/requirements-base.txt \
             -r zephyr/scripts/requirements-build-test.txt \
-            -r zephyr/scripts/requirements-run-test.txt
+            -r zephyr/scripts/requirements-run-test.txt \
+            -r ZephyrECU/tools/requirements-codegen.txt
+
+      - name: Check DBC generation and codec
+        run: |
+          python ZephyrECU/tools/dbc_codegen.py --check
+          python -m unittest discover -s ZephyrECU/tests/codegen -v \
+            2>&1 | tee build/logs/codegen-tests.log
 
       - name: Run unit tests
         run: |
           python zephyr/scripts/twister \
-            -T ZephyrECU/tests/can_if \
-            -T ZephyrECU/tests/diag_uds \
+            -T ZephyrECU/tests \
             -p native_sim \
             --outdir build/twister-contracts \
             --inline-logs 2>&1 | tee build/logs/unit-tests.log
@@ -121,7 +127,7 @@ jobs:
           with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
               summary.write(f"{message}\n\n")
               if not available:
-                  summary.write("UDS build, CAN/UDS unit tests, raw CAN integration and "
+                  summary.write("UDS build, all unit tests, raw CAN and can_comm integration and "
                                 "application smoke test remain required.\n")
           PY
 
@@ -136,6 +142,17 @@ jobs:
           timeout 90s python ZephyrECU/tools/test_can_if_socketcan.py \
             build/tests/can_if_socketcan/zephyr/zephyr.exe \
             --interface vcan0 2>&1 | tee build/logs/can-integration.log
+
+      - name: CAN communication integration test
+        run: |
+          west build -b native_sim \
+            -S socketcan-native-sim \
+            ZephyrECU/tests/can_comm_socketcan \
+            -d build/tests/can_comm_socketcan \
+            2>&1 | tee build/logs/can-comm-build.log
+          timeout 60s python ZephyrECU/tools/test_can_comm_socketcan.py \
+            build/tests/can_comm_socketcan/zephyr/zephyr.exe \
+            --interface vcan0 2>&1 | tee build/logs/can-comm-integration.log
 
       - name: Build UDS integration exerciser
         run: |

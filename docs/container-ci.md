@@ -29,14 +29,15 @@ An existing workspace is checked against `west-frozen.yml`; updates are explicit
 
 ```sh
 ./tools/run_docker.sh --update          # Resolve the checked-in west manifest
-./tools/run_docker.sh --unit-only       # Twister only; no CAN setup or NET_ADMIN
+./tools/run_docker.sh --unit-only       # Codegen + Twister; no CAN setup or NET_ADMIN
 ./tools/run_docker.sh --timing strict   # Also enforce host UDS latency limits
 ./tools/run_docker.sh --help
 ```
 
-The default run executes every native_sim Twister suite found below `tests/`,
-the raw CAN integration tester, the UDS integration tester, and the application
-smoke test. A failure stops the run and returns a nonzero exit status. The smoke
+The default run checks DBC generation and its host codec tests, executes every
+native_sim Twister suite found below `tests/`, the raw CAN and can_comm integration
+testers, the UDS integration tester, and the application smoke test. A failure
+stops the run and returns a nonzero exit status. The smoke
 test checks the application readiness log as well as process termination.
 
 UDS timing defaults to `report`: functional assertions remain mandatory, while
@@ -76,7 +77,7 @@ whose CMake caches contain different absolute paths. Results include:
 - `twister/`: Twister reports and test logs.
 - `logs/`: build and runtime logs, the resolved west manifest, CAN interface
   details, image ID, tool versions and Python package versions.
-- `can_if_socketcan/`, `diag_uds_socketcan/`, `native_sim/`: integration and
+- `can_if_socketcan/`, `can_comm_socketcan/`, `diag_uds_socketcan/`, `native_sim/`: integration and
   application build directories.
 
 The workspace is bind-mounted, so local source edits are tested immediately.
@@ -116,7 +117,8 @@ Identical userspace does not guarantee identical scheduling or kernel behavior.
 
 Update the Python lock deliberately when changing Zephyr or testing dependency
 updates. Resolve into a fresh Python 3.12 environment from the three pinned
-Zephyr requirement files and include west, then review the resulting versions.
+Zephyr requirement files, `tools/requirements-codegen.txt` and west, then review
+the resulting versions.
 For example, from the repository after the image and west workspace exist:
 
 ```sh
@@ -127,7 +129,8 @@ docker run --rm \
     /tmp/resolve/bin/pip install west \
       -r /workspace/zephyr/scripts/requirements-base.txt \
       -r /workspace/zephyr/scripts/requirements-build-test.txt \
-      -r /workspace/zephyr/scripts/requirements-run-test.txt >&2 &&
+      -r /workspace/zephyr/scripts/requirements-run-test.txt \
+      -r /workspace/ZephyrECU/tools/requirements-codegen.txt >&2 &&
     /tmp/resolve/bin/pip check >&2 &&
     /tmp/resolve/bin/pip freeze
   ' > /tmp/requirements-ci.lock

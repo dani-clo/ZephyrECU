@@ -1,0 +1,10 @@
+tests:
+  zephyrecu.can_comm.contract:
+    platform_allow:
+      - native_sim
+    integration_platforms:
+      - native_sim
+    tags:
+      - can
+      - can_comm
+    timeout: 30

@@ -19,8 +19,9 @@ while (( $# )); do
 Usage: tools/run_ci.sh [--unit-only] [--update] [--timing strict|report]
        tools/run_docker.sh [the same options]
 
-Run every native_sim Twister suite discovered below tests/. By default also run
-raw CAN and UDS integration tests and the application smoke test on vcan0.
+Check DBC generation/codecs and run every native_sim Twister suite below tests/.
+By default also run
+raw CAN, can_comm and UDS integration tests and the application smoke test on vcan0.
 --unit-only skips SocketCAN, requiring no vcan interface or NET_ADMIN.
 --update resolves west dependencies; a fresh workspace always initializes them.
 --timing defaults to report for host timing; functional checks always apply.
@@ -90,6 +91,10 @@ fi
 } > "$ci_log_dir/environment.txt"
 python -m pip check
 
+ci_stage=codegen
+run_logged codegen-check python "$ci_repo_dir/tools/dbc_codegen.py" --check
+run_logged codegen-tests python -m unittest discover -s "$ci_repo_dir/tests/codegen" -v
+
 ci_stage=twister
 run_logged twister python "$ci_workspace/zephyr/scripts/twister" \
     -T "$ci_repo_dir/tests" -p native_sim \
@@ -119,6 +124,12 @@ run_logged can-build west build -b native_sim -S socketcan-native-sim \
     "$ci_repo_dir/tests/can_if_socketcan" -d "$ci_build_dir/can_if_socketcan"
 run_logged can-integration timeout 90s python "$ci_repo_dir/tools/test_can_if_socketcan.py" \
     "$ci_build_dir/can_if_socketcan/zephyr/zephyr.exe" --interface vcan0
+
+ci_stage=can-comm-integration
+run_logged can-comm-build west build -b native_sim -S socketcan-native-sim \
+    "$ci_repo_dir/tests/can_comm_socketcan" -d "$ci_build_dir/can_comm_socketcan"
+run_logged can-comm-integration timeout 60s python "$ci_repo_dir/tools/test_can_comm_socketcan.py" \
+    "$ci_build_dir/can_comm_socketcan/zephyr/zephyr.exe" --interface vcan0
 
 ci_stage=uds-integration
 run_logged uds-build west build -b native_sim -S socketcan-native-sim \

@@ -1,0 +1,27 @@
+node: ECU
+pdus:
+  LedCommand:
+    timeout_ms: 60
+  VehicleFeedback:
+    timeout_ms: 100
+  StatusPeriodic:
+    mode: PERIODIC
+    period_ms: 40
+    min_delay_ms: 0
+    signals:
+      LedStatus: PENDING
+      Counter: PENDING
+  StatusEvent:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 15
+    signals:
+      EventValue: TRIGGERED_ON_CHANGE
+      EventCount: PENDING
+  StatusMixed:
+    mode: MIXED
+    period_ms: 100
+    min_delay_ms: 20
+    signals:
+      MixedValue: TRIGGERED_ON_CHANGE
+      PendingFlag: PENDING

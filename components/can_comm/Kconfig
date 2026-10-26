@@ -1,6 +1,25 @@
-config CAN_COMM
+menuconfig CAN_COMM
 	bool "ZephyrECU can_comm component"
 	depends on CAN_IF
+	depends on SYS_CLOCK_TICKS_PER_SEC >= 1000
 	help
-	  Enable the local can_comm component. Functionality is added in its
-	  implementation phase; the bootstrap only verifies module discovery.
+	  DBC-configured application signals and one bounded TX scheduler.
+
+if CAN_COMM
+
+config CAN_COMM_MAX_CALLBACKS
+	int "Maximum callbacks per RX PDU or signal"
+	default 4
+	range 1 16
+
+config CAN_COMM_STACK_SIZE
+	int "Communication scheduler stack size"
+	default 2048
+	range 1024 16384
+
+config CAN_COMM_PRIORITY
+	int "Communication scheduler preemptive priority"
+	default 6
+	range 0 14
+
+endif

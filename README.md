@@ -5,6 +5,8 @@ The CAN interface provides exact RX filtering, software fanout, bounded RX dispa
 nonblocking raw TX and error counters. The UDS server uses iso14229 with bundled
 ISO-TP on the same controller. See the [CAN interface contract](docs/can-if.md)
 and [diagnostic design](docs/diag-uds.md) for API details and limitations.
+Application PDU/signal caching, RX validity and periodic/event/mixed TX are
+described in the [communication contract](docs/can-comm.md).
 
 ## Virtual test environment
 
@@ -14,8 +16,8 @@ For a Docker-based setup on Linux x86_64, run from this repository:
 ./tools/run_docker.sh
 ```
 
-The launcher builds the `zephyrecu-ci` image, runs all native Twister suites,
-CAN/UDS integration tests and an application smoke test. It creates `vcan0`
+The launcher builds the `zephyrecu-ci` image, checks DBC generation, runs all native
+Twister suites, raw CAN/can_comm/UDS integration tests and an application smoke test. It creates `vcan0`
 inside the container and writes results to the workspace's `build/docker/`.
 Use `./tools/run_docker.sh --unit-only` to run without virtual CAN support.
 Only Docker is needed in userspace; integration tests also require the Docker
@@ -59,7 +61,8 @@ west init -l ZephyrECU
 west update --narrow -o=--depth=1
 pip install -r zephyr/scripts/requirements-base.txt \
   -r zephyr/scripts/requirements-build-test.txt \
-  -r zephyr/scripts/requirements-run-test.txt
+  -r zephyr/scripts/requirements-run-test.txt \
+  -r ZephyrECU/tools/requirements-codegen.txt
 west manifest --validate
 ```
 
@@ -69,11 +72,11 @@ root, with the virtual environment active.
 
 ## Unit tests
 
-Run the CAN interface and diagnostic contract tests through Twister:
+Run the CAN interface, communication and diagnostic contracts through Twister:
 
 ```sh
 ZEPHYR_TOOLCHAIN_VARIANT=host python zephyr/scripts/twister \
-  -T ZephyrECU/tests/can_if -T ZephyrECU/tests/diag_uds -p native_sim \
+  -T ZephyrECU/tests -p native_sim \
   --outdir build/twister-contracts --inline-logs
 ```
 
@@ -81,7 +84,16 @@ These tests use Zephyr's fake CAN driver and require no virtual CAN interface.
 They check filter sharing and capacity, frame validation, ISR/thread context,
 buffer ownership, queue overflow, TX errors, bus-off notifications, diagnostic
 registration, handler NRCs, backpressure and absolute-time wraparound. Twister
-writes results under `build/twister-contracts/`.
+writes results under `build/twister-contracts/`. Communication tests also verify
+signal snapshots, bounds, validity expiry, all three TX modes, coalescing,
+min-delay, periodic phase anchoring and submission/completion errors.
+
+Check the committed DBC output and independent codec oracle from the workspace:
+
+```sh
+python ZephyrECU/tools/dbc_codegen.py --check
+python -m unittest discover -s ZephyrECU/tests/codegen -v
+```
 
 ## SocketCAN integration tests
 
@@ -123,6 +135,24 @@ unshare --user --map-root-user --net sh -c '
 ```
 
 Any CAN tester or capture tool must run in the same network namespace as the ECU.
+
+## Application PDU integration test
+
+With `vcan0` up and other exercisers stopped, run:
+
+```sh
+ZEPHYR_TOOLCHAIN_VARIANT=host west build -b native_sim -S socketcan-native-sim \
+  ZephyrECU/tests/can_comm_socketcan -d build/tests/can_comm_socketcan
+python ZephyrECU/tools/test_can_comm_socketcan.py \
+  build/tests/can_comm_socketcan/zephyr/zephyr.exe --interface vcan0
+```
+
+The dedicated harness exercises the generated IDs and bytes, signed and extended
+RX, PDU callbacks independently of raw signal changes, periodic/event/mixed TX,
+invalid payload rejection and timeout/revalidation. It also exchanges UDS
+TesterPresent on the same controller using raw CAN, without kernel ISO-TP.
+It does not drive GPIO or install application SWCs. See the
+[communication contract](docs/can-comm.md) for the DBC and runtime APIs.
 
 ## Manual CAN test
 
@@ -190,8 +220,9 @@ ZEPHYR_TOOLCHAIN_VARIANT=host west build -b native_sim -S socketcan-native-sim \
 
 Expected logs include `LED initialized: off (memory backend)` and
 `ZephyrECU CAN and diagnostics ready`. The application initializes diagnostic
-routes and demonstration handlers without raw echo routes. `can_comm` remains
-a discovery stub. Zephyr's `CONFIG_ISOTP` remains disabled.
+routes and demonstration handlers without raw echo routes. The application PDU
+scheduler is exercised by its separate integration harness. Zephyr's
+`CONFIG_ISOTP` remains disabled.
 
 To try diagnostics manually, omit `-stop_at=1` and run `candump vcan0` in another
 terminal. Send `cansend vcan0 7E0#023E00` for TesterPresent; expect
@@ -209,8 +240,9 @@ occurs. Physical bus-off and electrical behavior require hardware testing.
 
 ## GitHub Actions
 
-The workflow in `.github/workflows/ci.yml` runs unit tests, raw CAN and UDS
-integration tests, and the application smoke test on `ubuntu-24.04` for pushes
+The workflow in `.github/workflows/ci.yml` checks DBC generation and codec tests,
+runs unit tests, raw CAN/can_comm and UDS integration tests, and the application
+smoke test on `ubuntu-24.04` for pushes
 to `main` and pull requests. It also supports manual dispatch once registered on
 the default branch. Workflow changes and the test scripts must be committed and
 pushed before GitHub can execute them.
@@ -223,7 +255,7 @@ integration and application smoke tests.
 A separate socket probe checks kernel ISO-TP support, including support built
 directly into the kernel. If the protocol is unavailable, only execution of the
 UDS integration tester is skipped, with a warning, probe logs and a job summary
-entry. The UDS exerciser is still built, and all CAN/UDS unit tests, raw CAN
+entry. The UDS exerciser is still built, and all unit tests, raw CAN/can_comm
 integration and application smoke tests remain required. Unexpected probe errors
 and failures in enabled tests fail the job. The local Docker runner still
 requires ISO-TP support for its full test run.
