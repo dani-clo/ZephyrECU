@@ -12,6 +12,8 @@ manifest:
         name-allowlist:
           - cmsis_6
           - hal_nxp
+          - hal_stm32
+          - hal_infineon
     - name: iso14229
       remote: driftregion
       revision: 8a7eb23d6ab9d52f66ce36b07ba456613709c78e

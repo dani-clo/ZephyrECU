@@ -1,0 +1,19 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+/ {
+	chosen {
+		zephyr,canbus = &fdcan1;
+	};
+};
+
+/* D5 (PA11): RX, D4 (PA12): TX. Connect an external CAN transceiver.
+ * These pins are shared with USB OTG FS, which the board leaves disabled.
+ */
+&fdcan1 {
+	clocks = <&rcc STM32_CLOCK(APB1_2, 9)>,
+		 <&rcc STM32_SRC_PLL1_Q FDCAN1_SEL(1)>;
+	pinctrl-0 = <&fdcan1_rx_pa11 &fdcan1_tx_pa12>;
+	pinctrl-names = "default";
+	bitrate = <500000>;
+	status = "okay";
+};
