@@ -1,0 +1,7 @@
+if(CONFIG_ECU_TASK_MANAGER)
+  zephyr_library()
+  zephyr_library_sources(src/task_manager.c)
+  zephyr_include_directories(include)
+  zephyr_library_compile_options(-Wall -Wextra)
+  zephyr_linker_sources(SECTIONS iterable.ld)
+endif()

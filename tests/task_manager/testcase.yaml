@@ -1,0 +1,10 @@
+tests:
+  zephyrecu.task_manager.contract:
+    platform_allow:
+      - native_sim
+    integration_platforms:
+      - native_sim
+    tags:
+      - task_manager
+      - can_comm
+    timeout: 30

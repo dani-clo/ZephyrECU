@@ -18,10 +18,22 @@ manifest:
     path: modules/hal/cmsis_6
     groups:
     - hal
+  - name: hal_infineon
+    url: https://github.com/zephyrproject-rtos/hal_infineon
+    revision: 3ae25facf70c296145f6e12aa10b4810d49c2b33
+    path: modules/hal/infineon
+    groups:
+    - hal
   - name: hal_nxp
     url: https://github.com/zephyrproject-rtos/hal_nxp
     revision: 7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0
     path: modules/hal/nxp
+    groups:
+    - hal
+  - name: hal_stm32
+    url: https://github.com/zephyrproject-rtos/hal_stm32
+    revision: fc11896dd39cfca37bf9b4aeaaa2df8861b81875
+    path: modules/hal/stm32
     groups:
     - hal
   self:

@@ -67,7 +67,7 @@ root, with the virtual environment active.
 
 ## Unit tests
 
-Run the CAN interface, communication and diagnostic contracts through Twister:
+Run the CAN interface, communication, diagnostic and application task contracts through Twister:
 
 ```sh
 ZEPHYR_TOOLCHAIN_VARIANT=host python zephyr/scripts/twister \
@@ -82,6 +82,9 @@ registration, handler NRCs, backpressure and absolute-time wraparound. Twister
 writes results under `build/twister-contracts/`. Communication tests also verify
 signal snapshots, bounds, validity expiry, all three TX modes, coalescing,
 min-delay, periodic phase anchoring and submission/completion errors.
+Task Manager tests cover explicit startup, ISR notifications, event coalescing,
+sequential callbacks, deterministic scheduling/statistics and CAN-to-task LED
+processing alongside independent CAN TX; see the [contract](task-manager.md).
 
 Check the committed DBC output and independent codec oracle from the workspace:
 

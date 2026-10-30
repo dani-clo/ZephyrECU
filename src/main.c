@@ -2,6 +2,9 @@
 #include "app_diag.h"
 #include "diag_uds.h"
 #include "can_if.h"
+#include "can_comm.h"
+#include "app_tasks.h"
+#include "ecu_task_manager.h"
 
 #include <zephyr/logging/log.h>
 
@@ -20,6 +23,12 @@ int main(void)
 		LOG_ERR("CAN interface initialization failed: %d", ret);
 		return ret;
 	}
+	ret = can_comm_init();
+	if (ret == 0) { ret = app_tasks_init(); }
+	if (ret != 0) {
+		LOG_ERR("Application communication initialization failed: %d", ret);
+		return ret;
+	}
 	ret = diag_uds_init();
 	if (ret == 0) {
 		ret = app_diag_register();
@@ -36,6 +45,12 @@ int main(void)
 	ret = diag_uds_start();
 	if (ret != 0) {
 		LOG_ERR("Diagnostic worker start failed: %d", ret);
+		return ret;
+	}
+	ret = can_comm_start();
+	if (ret == 0) { ret = ecu_task_manager_start(); }
+	if (ret != 0) {
+		LOG_ERR("Application task startup failed: %d", ret);
 		return ret;
 	}
 	LOG_INF("ZephyrECU CAN and diagnostics ready");
