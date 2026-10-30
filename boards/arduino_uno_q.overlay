@@ -17,3 +17,10 @@
 	bitrate = <500000>;
 	status = "okay";
 };
+
+/* Reuse the board's existing storage area exclusively for ECU persistent data.
+ * Existing boot/image partition offsets and sizes are unchanged.
+ */
+/ {
+	aliases { ecu-nvm = &storage_partition; };
+};

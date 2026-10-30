@@ -143,4 +143,7 @@ run_logged application-build west build -b native_sim -S socketcan-native-sim \
 run_logged application-smoke timeout 15s "$ci_build_dir/native_sim/zephyr/zephyr.exe" \
     --can-if=vcan0 -rt -stop_at=1
 grep -Fq 'ZephyrECU CAN and diagnostics ready' "$ci_log_dir/application-smoke.log"
+ci_stage=nvm-application-integration
+run_logged nvm-application-integration timeout 30s python "$ci_repo_dir/tools/test_nvm_socketcan.py" \
+    "$ci_build_dir/native_sim/zephyr/zephyr.exe" --interface vcan0
 printf 'PASS: all native_sim unit/integration/smoke tests. Results: %s\n' "$ci_build_dir"

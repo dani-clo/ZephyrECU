@@ -1,0 +1,10 @@
+tests:
+  zephyrecu.nvm.reboot:
+    platform_allow:
+      - native_sim
+    integration_platforms:
+      - native_sim
+    tags:
+      - nvm
+    expect_reboot: true
+    timeout: 30

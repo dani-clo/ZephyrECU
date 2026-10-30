@@ -67,7 +67,7 @@ root, with the virtual environment active.
 
 ## Unit tests
 
-Run the CAN interface, communication, diagnostic and application task contracts through Twister:
+Run the CAN interface, communication, diagnostic, application task and NVM contracts through Twister:
 
 ```sh
 ZEPHYR_TOOLCHAIN_VARIANT=host python zephyr/scripts/twister \
@@ -85,6 +85,10 @@ min-delay, periodic phase anchoring and submission/completion errors.
 Task Manager tests cover explicit startup, ISR notifications, event coalescing,
 sequential callbacks, deterministic scheduling/statistics and CAN-to-task LED
 processing alongside independent CAN TX; see the [contract](task-manager.md).
+NVM suites use the Zephyr flash simulator for validated envelopes, CRC corruption,
+backend errors, concurrent writers, sector rotation/full storage, SWC persistence
+ownership and process reboot persistence; see [NVM](nvm.md). Physical power-cycle,
+flash latency and CAN/UDS impact still require target measurements.
 
 Check the committed DBC output and independent codec oracle from the workspace:
 

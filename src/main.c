@@ -5,6 +5,9 @@
 #include "can_comm.h"
 #include "app_tasks.h"
 #include "ecu_task_manager.h"
+#if defined(CONFIG_ECU_NVM)
+#include "ecu_nvm.h"
+#endif
 
 #include <zephyr/logging/log.h>
 
@@ -18,6 +21,15 @@ int main(void)
 		LOG_ERR("LED initialization failed: %d", ret);
 		return ret;
 	}
+#if defined(CONFIG_ECU_NVM)
+	ret = ecu_nvm_init();
+	if (ret != 0) {
+		LOG_ERR("Persistent storage initialization failed: %d", ret);
+		return ret;
+	}
+#else
+	LOG_WRN("NVM disabled: persistent configuration unavailable on this build");
+#endif
 	ret = can_if_init();
 	if (ret != 0) {
 		LOG_ERR("CAN interface initialization failed: %d", ret);

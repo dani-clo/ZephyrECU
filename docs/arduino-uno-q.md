@@ -21,4 +21,12 @@ adb shell '/opt/openocd/bin/openocd -d2 -s /opt/openocd -f openocd_gpiod.cfg -c 
 The console uses USART1 on D1/TX and D0/RX at 115200 baud, accessible with
 an external 3.3 V USB-to-UART adapter and a common ground.
 
+NVM uses the existing 128 KiB storage partition at flash offset `0xE0000`.
+The application retains its direct-boot origin at `0x08000000`; its linker load
+size is bounded before storage. This build does not enable MCUboot or change
+partition offsets. A mass erase can destroy configuration; use an application-only
+programming flow and verify tool behavior on the target. Reset/power-cycle
+persistence and flash-write effects on CAN/UDS remain unverified. See the
+[NVM contract](nvm.md) for details.
+
 [Back to the README](../README.md).

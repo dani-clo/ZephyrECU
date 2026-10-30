@@ -1,0 +1,22 @@
+menuconfig ECU_NVM
+	bool "ZephyrECU synchronous persistent data manager (NVS)"
+	select FLASH
+	select FLASH_MAP
+	select FLASH_PAGE_LAYOUT
+	select NVS
+	select NVS_DATA_CRC
+	help
+	  Requires an ecu-nvm Devicetree alias to an exclusive fixed partition
+	  and a working Zephyr flash driver. No automatic formatting on errors.
+
+if ECU_NVM
+
+config ECU_NVM_MAX_PAYLOAD_SIZE
+	int "Maximum persistent record payload bytes"
+	default 256
+	range 1 4096
+	help
+	  One shared serialized scratch buffer, no allocation. Must fit the
+	  partition erase page with the envelope, NVS metadata and alignment.
+
+endif
