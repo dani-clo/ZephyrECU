@@ -93,7 +93,7 @@ same orchestrator can run without Docker:
 ```
 
 This uses `build/ci/` by default; set `CI_BUILD_DIR` to change it. Native execution
-expects an already configured host `vcan0` for integration tests. See the README
+expects an already configured host `vcan0` for integration tests. See [Testing](testing.md#virtual-test-environment)
 for native package and interface setup.
 
 ## Dependency pinning

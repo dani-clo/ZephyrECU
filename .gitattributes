@@ -1,0 +1,2 @@
+# DBC output is checked byte-for-byte; preserve generated LF on every platform.
+/components/can_comm/generated/* text eol=lf

@@ -10,6 +10,97 @@ permissions:
   contents: read
 
 jobs:
+  windows-build:
+    name: Windows firmware build (${{ matrix.board }})
+    runs-on: windows-2022
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [s32k148_evb, arduino_uno_q]
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      BUILD_BOARD: ${{ matrix.board }}
+      ZEPHYR_TOOLCHAIN_VARIANT: zephyr
+      ZEPHYR_SDK_INSTALL_DIR: C:/zephyr-sdk
+      CMAKE_GENERATOR: Ninja
+
+    steps:
+      - name: Enable long Git paths
+        run: git config --global core.longpaths true
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: ZephyrECU
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install host dependencies
+        run: |
+          choco install gperf dtc-msys2 --yes --no-progress
+          cmake --version
+          ninja --version
+          7z i
+
+      - name: Install west
+        run: python -m pip install west
+
+      - name: Initialize Zephyr workspace
+        run: |
+          west init -l ZephyrECU
+          west update --narrow -o=--depth=1
+          west manifest --validate
+
+      - name: Install Zephyr requirements
+        run: |
+          python -m pip install \
+            -r zephyr/scripts/requirements-base.txt \
+            -r ZephyrECU/tools/requirements-codegen.txt
+
+      - name: Install ARM Zephyr SDK
+        # west uses the version in zephyr/SDK_VERSION; download only ARM tools.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          west sdk install \
+            --install-dir C:/zephyr-sdk \
+            --gnu-toolchains arm-zephyr-eabi \
+            --personal-access-token "$GH_TOKEN"
+
+      - name: Check DBC generation
+        run: python ZephyrECU/tools/dbc_codegen.py --check
+
+      - name: Build firmware
+        run: |
+          mkdir -p build/logs
+          west build -b "$BUILD_BOARD" ZephyrECU -d "build/$BUILD_BOARD" \
+            -- -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            2>&1 | tee build/logs/windows-build.log
+
+      - name: Upload firmware and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.board }}
+          include-hidden-files: true
+          path: |
+            build/${{ matrix.board }}/zephyr/zephyr.elf
+            build/${{ matrix.board }}/zephyr/zephyr.bin
+            build/${{ matrix.board }}/zephyr/zephyr.hex
+            build/${{ matrix.board }}/zephyr/.config
+            build/${{ matrix.board }}/zephyr/zephyr.dts
+            build/${{ matrix.board }}/CMakeFiles/CMakeConfigureLog.yaml
+            build/logs/windows-build.log
+          if-no-files-found: warn
+
   native-sim:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -67,13 +158,54 @@ jobs:
           python -m unittest discover -s ZephyrECU/tests/codegen -v \
             2>&1 | tee build/logs/codegen-tests.log
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: |
           python zephyr/scripts/twister \
             -T ZephyrECU/tests \
             -p native_sim \
+            --coverage --coverage-tool gcovr \
+            --coverage-formats html,txt \
+            --coverage-basedir "$PWD/ZephyrECU" \
             --outdir build/twister-contracts \
             --inline-logs 2>&1 | tee build/logs/unit-tests.log
+
+      - name: Generate component coverage reports
+        run: |
+          mkdir -p build/coverage-components
+          gcovr --root "$PWD/ZephyrECU" \
+            --add-tracefile build/twister-contracts/coverage.json \
+            --filter "$PWD/ZephyrECU/components/" \
+            --exclude '.*/generated/.*' --exclude '.*/tests/.*' \
+            --merge-mode-functions=separate \
+            --html-details build/coverage-components/index.html \
+            --txt build/coverage-components/coverage.txt \
+            --json-summary build/coverage-components/summary.json \
+            --print-summary 2>&1 | tee build/logs/component-coverage.log
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("build/coverage-components")
+          summary = json.loads((report / "summary.json").read_text())
+          if summary["line_total"] == 0:
+              raise SystemExit("Component coverage report contains no executable lines")
+          percent = 100 * summary["line_covered"] / summary["line_total"]
+          badge = {
+              "schemaVersion": 1,
+              "label": "coverage (components)",
+              "message": f"{percent:.1f}%",
+              "color": "brightgreen" if percent >= 90 else "yellow" if percent >= 75 else "red",
+          }
+          (report / "badge.json").write_text(json.dumps(badge) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload component coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-sim-component-coverage
+          path: build/coverage-components/
+          if-no-files-found: warn
 
       - name: Setup virtual CAN
         run: |
@@ -196,3 +328,37 @@ jobs:
             build/twister-contracts/
             build/logs/
           if-no-files-found: warn
+
+  publish-coverage:
+    name: Publish coverage report
+    needs: [native-sim, windows-build]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download component coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          name: native-sim-component-coverage
+          path: coverage-site
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload coverage site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: coverage-site
+
+      - name: Deploy coverage site
+        id: deployment
+        uses: actions/deploy-pages@v4
