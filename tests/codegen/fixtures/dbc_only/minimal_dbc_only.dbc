@@ -1,0 +1,25 @@
+VERSION "ZephyrECU minimal DBC-only example"
+
+NS_ :
+BS_:
+BU_: ECU Tester
+
+BO_ 256 ECU_Status: 2 ECU
+ SG_ AliveCounter : 0|8@1+ (1,0) [0|255] "" Tester
+ SG_ Ready : 8|1@1+ (1,0) [0|1] "" Tester
+
+BO_ 512 Tester_Command: 1 Tester
+ SG_ Enable : 0|1@1+ (1,0) [0|1] "" ECU
+
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 2147483647;
+BA_DEF_ BO_ "GenMsgSendType" ENUM "Cyclic","OnWrite","CyclicAndOnWrite";
+BA_DEF_ BO_ "GenMsgDelayTime" INT 0 2147483647;
+BA_DEF_ BO_ "ZephyrECU_RxTimeoutMs" INT 0 2147483647;
+BA_DEF_ SG_ "ZephyrECU_SignalTrigger" ENUM "PENDING","TRIGGERED_ON_CHANGE";
+
+BA_ "GenMsgCycleTime" BO_ 256 100;
+BA_ "GenMsgSendType" BO_ 256 0;
+BA_ "GenMsgDelayTime" BO_ 256 0;
+BA_ "ZephyrECU_RxTimeoutMs" BO_ 512 500;
+BA_ "ZephyrECU_SignalTrigger" SG_ 256 AliveCounter 0;
+BA_ "ZephyrECU_SignalTrigger" SG_ 256 Ready 0;

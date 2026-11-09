@@ -20,10 +20,10 @@ def raw_bounds(signal):
             min(high, (1 << (signal.length - int(signal.is_signed))) - 1))
 
 
-def check_codec(test, root, codegen, dbc, policy):
-    pdus, signals = codegen.model(dbc, policy)
-    files = codegen.generate(dbc, policy)
-    test.assertEqual(files, codegen.generate(dbc, policy), "generation must be deterministic")
+def check_codec(test, root, codegen, dbc, policy=None, node=None):
+    pdus, signals = codegen.model(dbc, policy, node=node)
+    files = codegen.generate(dbc, policy, node=node)
+    test.assertEqual(files, codegen.generate(dbc, policy, node=node), "generation must be deterministic")
     # Load separately: do not take the reference messages/bounds from the generator model.
     reference = cantools.database.load_file(dbc, database_format="dbc", strict=True)
     test.assertEqual({p["message"].name for p in pdus}, {m.name for m in reference.messages})

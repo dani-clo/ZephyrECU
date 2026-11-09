@@ -22,6 +22,10 @@ def unique_mapping(loader, node):
     result = {}
     for key_node, value_node in node.value:
         key = loader.construct_object(key_node)
+        try:
+            hash(key)
+        except TypeError as error:
+            raise ValueError("policy keys must be scalars") from error
         if key in result:
             raise ValueError(f"duplicate policy key: {key}")
         result[key] = loader.construct_object(value_node)
@@ -35,11 +39,6 @@ def ident(name):
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", name):
         raise ValueError(f"unsupported C identifier: {name}")
     return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", name).lower()
-
-
-def keys(value, expected, label):
-    if not isinstance(value, dict) or set(value) != set(expected):
-        raise ValueError(f"{label}: expected exactly {sorted(expected)}")
 
 
 def milliseconds(value, label, allow_zero=False):
@@ -59,17 +58,115 @@ def bit_positions(signal):
     return list(reversed(bits))
 
 
-def model(dbc, policy):
-    database = cantools.database.load_file(dbc, database_format="dbc", strict=True,
-                                            sort_signals=None)
-    config = yaml.load(Path(policy).read_text(), Loader=UniqueLoader)
-    keys(config, ("node", "pdus"), "policy")
-    if config["node"] not in {node.name for node in database.nodes}:
-        raise ValueError("policy node not declared in DBC")
+def optional_keys(value, allowed, label):
+    if not isinstance(value, dict):
+        raise ValueError(f"{label}: expected a mapping")
+    unknown = set(value) - set(allowed)
+    if unknown:
+        raise ValueError(f"{label}: unknown keys {sorted(map(str, unknown))}")
+
+
+def dbc_attribute(owner, name, kind):
+    """Resolve explicit/default DBC values without cantools' truthiness conversions."""
+    attribute = owner.dbc.attributes.get(name)
+    definition = owner.dbc.attribute_definitions.get(name)
+    if attribute is None and (definition is None or definition.default_value is None):
+        return None
+    if attribute is not None:
+        definition = attribute.definition
+        value = attribute.value
+    else:
+        value = definition.default_value
+    expected_type = "ENUM" if name in ("GenMsgSendType", "ZephyrECU_SignalTrigger") else "INT"
+    if definition.kind != kind or definition.type_name != expected_type:
+        raise ValueError(f"{name}: expected {kind} {expected_type} DBC attribute")
+    if expected_type == "ENUM":
+        choices = definition.choices
+        if type(value) is int and 0 <= value < len(choices):
+            return choices[value]
+        if isinstance(value, str) and value in choices:
+            return value
+        raise ValueError(f"{name}: invalid DBC enum value {value!r}")
+    return value
+
+
+def selected_node(database, config, node):
+    policy_node = config.get("node")
+    if "node" in config and not isinstance(policy_node, str):
+        raise ValueError("policy node: expected a DBC node name")
+    if node is not None and policy_node is not None and node != policy_node:
+        raise ValueError("--node conflicts with policy node")
+    node = node if node is not None else policy_node
+    declared = {n.name for n in database.nodes}
+    if node is None:
+        if len(declared) != 1:
+            raise ValueError("missing or ambiguous ECU node; pass --node NAME or set policy node")
+        node = next(iter(declared))
+    if node not in declared:
+        raise ValueError("policy node not declared in DBC; select a declared node with --node NAME")
+    return node
+
+
+def pdu_settings(message, overrides, tx):
+    optional_keys(overrides, ("mode", "period_ms", "min_delay_ms", "signals") if tx else
+                  ("timeout_ms",), message.name)
+
+    def value(key, attribute, default=None):
+        if key in overrides:
+            return overrides[key]
+        resolved = dbc_attribute(message, attribute, "BO_")
+        return default if resolved is None else resolved
+
+    if not tx:
+        timeout = value("timeout_ms", "ZephyrECU_RxTimeoutMs")
+        if timeout is None and "timeout_ms" not in overrides:
+            raise ValueError(f"{message.name}: missing RX timeout; set ZephyrECU_RxTimeoutMs "
+                             "or YAML timeout_ms")
+        return "RX", 0, 0, milliseconds(timeout, f"{message.name}.timeout_ms"), {}
+    period = value("period_ms", "GenMsgCycleTime", 0)
+    period = milliseconds(period, f"{message.name}.period_ms", True)
+    if "mode" in overrides:
+        mode = overrides["mode"]
+    else:
+        send_type = dbc_attribute(message, "GenMsgSendType", "BO_")
+        if send_type is None:
+            mode = "PERIODIC" if period > 0 else "EVENT"
+        else:
+            mapping = {"Cyclic": "PERIODIC", "OnWrite": "EVENT", "CyclicAndOnWrite": "MIXED"}
+            if send_type not in mapping:
+                raise ValueError(f"{message.name}: unsupported GenMsgSendType {send_type!r}")
+            mode = mapping[send_type]
+    if mode not in ("PERIODIC", "EVENT", "MIXED"):
+        raise ValueError(f"{message.name}: unsupported TX mode")
+    if mode == "EVENT" and period != 0:
+        raise ValueError(f"{message.name}: EVENT requires period_ms=0")
+    if mode != "EVENT" and period == 0:
+        raise ValueError(f"{message.name}: {mode} requires positive period_ms; "
+                         "set GenMsgCycleTime or YAML period_ms")
+    delay = milliseconds(value("min_delay_ms", "GenMsgDelayTime", 0),
+                         f"{message.name}.min_delay_ms", True)
+    triggers = overrides.get("signals", {})
+    optional_keys(triggers, [s.name for s in message.signals], f"{message.name}.signals")
+    return mode, period, delay, 0, triggers
+
+
+def model(dbc, policy=None, node=None):
+    try:
+        database = cantools.database.load_file(dbc, database_format="dbc", strict=True,
+                                               sort_signals=None)
+    except cantools.database.errors.UnsupportedDatabaseFormatError as error:
+        if isinstance(error.__cause__, IndexError):
+            raise ValueError("invalid DBC enum value; check GenMsgSendType indices "
+                             "against its ENUM definition") from error
+        raise
+    config = {} if policy is None else yaml.load(Path(policy).read_text(), Loader=UniqueLoader)
+    optional_keys(config, ("node", "pdus"), "policy")
+    node = selected_node(database, config, node)
     messages = sorted(database.messages, key=lambda m: (m.frame_id, m.is_extended_frame))
     if not messages or len(messages) > 32:
         raise ValueError("expected 1..32 messages")
-    keys(config["pdus"], [m.name for m in messages], "PDU policy")
+    overrides = config.get("pdus", {})
+    optional_keys(overrides, [m.name for m in messages], "PDU policy")
     names, routes, pdus, signals = set(), set(), [], []
     for message in messages:
         name = ident(message.name)
@@ -81,24 +178,11 @@ def model(dbc, policy):
             raise ValueError(f"{message.name}: only non-container Classical CAN DLC 1..8 supported")
         if len(message.senders) != 1 or not 1 <= len(message.signals) <= 16:
             raise ValueError(f"{message.name}: one sender and 1..16 signals required")
-        tx = message.senders == [config["node"]]
-        if not tx and any(config["node"] not in s.receivers for s in message.signals):
+        tx = message.senders == [node]
+        if not tx and any(node not in s.receivers for s in message.signals):
             raise ValueError(f"{message.name}: RX signals must map to the policy node")
-        settings = config["pdus"][message.name]
-        keys(settings, ("mode", "period_ms", "min_delay_ms", "signals") if tx else
-             ("timeout_ms",), message.name)
-        mode, period, delay, timeout = "RX", 0, 0, 0
-        if tx:
-            mode = settings["mode"]
-            if mode not in ("PERIODIC", "EVENT", "MIXED"):
-                raise ValueError(f"{message.name}: unsupported TX mode")
-            period = milliseconds(settings["period_ms"], "period_ms", mode == "EVENT")
-            delay = milliseconds(settings["min_delay_ms"], "min_delay_ms", True)
-            if mode == "EVENT" and period != 0:
-                raise ValueError("EVENT requires period_ms=0")
-            keys(settings["signals"], [s.name for s in message.signals], message.name)
-        else:
-            timeout = milliseconds(settings["timeout_ms"], "timeout_ms")
+        mode, period, delay, timeout, triggers = pdu_settings(
+            message, overrides.get(message.name, {}), tx)
         pdu = dict(name=name, enum="CAN_PDU_" + name.upper(), message=message,
                    mode=mode, period=period, delay=delay, timeout=timeout,
                    first=len(signals), count=len(message.signals), tx=tx)
@@ -126,7 +210,14 @@ def model(dbc, policy):
             bits = bit_positions(signal)
             if any(bit < 0 or bit >= message.length * 8 for bit in bits):
                 raise ValueError(f"{signal.name}: bit layout outside PDU")
-            trigger = settings["signals"][signal.name] if tx else "PENDING"
+            trigger = "PENDING"
+            if tx:
+                if signal.name in triggers:
+                    trigger = triggers[signal.name]
+                else:
+                    trigger = dbc_attribute(signal, "ZephyrECU_SignalTrigger", "SG_")
+                    if trigger is None:
+                        trigger = "PENDING"
             if trigger not in ("PENDING", "TRIGGERED_ON_CHANGE"):
                 raise ValueError(f"{signal.name}: unsupported signal trigger")
             width = next(w for w in (8, 16, 32) if w >= signal.length)
@@ -142,8 +233,8 @@ def model(dbc, policy):
     return pdus, signals
 
 
-def generate(dbc, policy):
-    pdus, signals = model(dbc, policy)
+def generate(dbc, policy=None, node=None):
+    pdus, signals = model(dbc, policy, node)
     enums = "typedef enum {\n" + "".join(f"\t{p['enum']},\n" for p in pdus) + "\tCAN_PDU_COUNT\n} can_pdu_id_t;\n"
     enums += "typedef enum {\n" + "".join(f"\t{s['enum']},\n" for s in signals) + "\tCAN_SIGNAL_COUNT\n} can_signal_id_t;\n"
     cfg_h = BANNER + """#ifndef ZEPHYRECU_CAN_CFG_H_
@@ -259,13 +350,19 @@ int {stem}_set_raw({ctype} raw)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dbc", type=Path, default=ROOT / "dbc/automotive.dbc")
-    parser.add_argument("--policy", type=Path, default=ROOT / "dbc/can_policy.yaml")
+    parser.add_argument("--dbc", type=Path, help="DBC input (default: repository demo)")
+    parser.add_argument("--policy", type=Path,
+                        help="optional YAML overrides (demo policy used only when --dbc is omitted)")
+    parser.add_argument("--node", help="local ECU node declared in the DBC")
     parser.add_argument("--out", type=Path, default=ROOT / "components/can_comm/generated")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     try:
-        files = generate(args.dbc, args.policy)
+        # Preserve the demo command; explicit --dbc never discovers an unrelated policy.
+        policy = args.policy
+        if args.dbc is None and policy is None and (ROOT / "dbc/can_policy.yaml").is_file():
+            policy = ROOT / "dbc/can_policy.yaml"
+        files = generate(args.dbc or ROOT / "dbc/automotive.dbc", policy, args.node)
         for name, content in files.items():
             path = args.out / name
             if args.check:

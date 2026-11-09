@@ -32,7 +32,7 @@ class CodegenTests(unittest.TestCase):
             (dbc.replace("LedCommand: 4", "LedCommand: 9"), policy, "Classical CAN"),
             (dbc, policy.replace("timeout_ms: 60", "timeout_ms: 0"), "milliseconds"),
             (dbc, policy.replace("min_delay_ms: 15", "min_delay_ms: -1"), "milliseconds"),
-            (dbc, policy.replace("timeout_ms: 60", "timeout_ms: 60\n    can_id: 288"), "expected exactly"),
+            (dbc, policy.replace("timeout_ms: 60", "timeout_ms: 60\n    can_id: 288"), "unknown keys"),
             (dbc, policy.replace("timeout_ms: 60", "timeout_ms: 60\n    timeout_ms: 40"), "duplicate"),
             (dbc, policy.replace("mode: EVENT", "mode: UNKNOWN"), "unsupported TX mode"),
             (dbc, policy.replace("period_ms: 0", "period_ms: 10"), "EVENT requires"),

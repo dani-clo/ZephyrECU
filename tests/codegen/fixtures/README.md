@@ -1,8 +1,9 @@
 # DBC generator fixtures and compiled codec tests
 
-These DBCs and their matching YAML policies are test inputs, separate from the
-application's `dbc/` directory. The original fixtures were reviewed with the
-pinned cantools version: all three valid inputs are accepted and all sixteen
+These DBCs and optional YAML policies are test inputs, separate from the
+application's `dbc/` directory. `valid/` and `invalid/` retain paired YAML inputs;
+`dbc_only/` exercises generation with `--node ECU` and no YAML. The original
+fixtures were reviewed with the pinned cantools version: all three valid inputs are accepted and all sixteen
 invalid inputs are rejected as intended.
 
 ## Run locally
@@ -46,16 +47,25 @@ or codec mismatch fails the job; its log is uploaded even on failure.
 | invalid/syntax_* | REJECT | Malformed DBC syntax |
 | invalid/overlap_signals, outside_dlc, zero_length_signal | REJECT | Invalid signal layouts |
 | invalid/negative_scale, unsupported_* | REJECT | Unsupported scale, multiplexing, floats, DLC 9, width 33 |
-| invalid/missing_policy_pdu, duplicate_policy_key, bad_timeout | REJECT | Policy validation |
+| invalid/missing_policy_pdu, duplicate_policy_key, bad_timeout | REJECT | Required RX timeout absent, duplicate keys, invalid timing |
 | invalid/invalid_identifier | REJECT | Illegal DBC name, rejected by cantools syntax parsing |
 | invalid/empty_bounds | REJECT | Physical interval containing no representable raw value |
 | invalid/unknown_node, wrong_receiver | REJECT | Node declaration and RX routing |
 | invalid/duplicate_route, normalized_signal_collision | REJECT | Duplicate CAN route and normalized C signal name |
 
+The `dbc_only/minimal_dbc_only` and `dbc_only/attributes_override` examples are
+accepted without YAML and round-tripped through compiled C. See
+[CAN configuration](../../../docs/can-comm.md#dbc-only-configuration-and-yaml-overrides)
+for defaults and supported attributes. `test_optional_policy.py` covers partial
+overrides, attribute defaults/enums, node selection, malformed/unknown policy
+keys, timing conflicts, CLI read-only checks and unchanged demo output.
+
 Negative fixtures require a relevant diagnostic, not merely any exception.
 Missing files and unexpected Python errors fail the test rather than counting
 as expected rejection. Inventory checks detect unlisted negative fixtures and
-DBC/policy pairing mistakes.
+DBC/policy pairing mistakes. The legacy `missing_policy_pdu` fixture still fails
+because its RX timeout cannot be derived; omission of an override is otherwise
+permitted.
 
 ## Codec oracle
 

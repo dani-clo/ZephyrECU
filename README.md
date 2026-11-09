@@ -101,3 +101,5 @@ unit tests, integration tests, manual CAN checks and GitHub Actions.
 DBC generator tests and compiled C round-trips against cantools can be run with
 `python -m unittest discover -s tests/codegen -v`; see the
 [fixture suite](tests/codegen/fixtures/README.md) for dependencies and coverage.
+Custom DBCs can generate without YAML using `--dbc network.dbc --node ECU`;
+see [DBC attributes and optional overrides](docs/can-comm.md#dbc-only-configuration-and-yaml-overrides).

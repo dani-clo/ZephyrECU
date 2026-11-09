@@ -7,10 +7,11 @@ continue to use `diag_uds` independently on the same controller.
 ## Configuration and generation
 
 `dbc/automotive.dbc` owns CAN IDs, frame type, DLC, sender/receivers, signal layout,
-signedness, scale, offset and physical bounds. `dbc/can_policy.yaml` identifies
-the local DBC node and supplies RX timeouts and TX mode/period/min-delay/trigger
-policies, keyed only by DBC names. TX direction follows the DBC sender; all signals
-of an RX PDU must name the local node as a receiver.
+signedness, scale, offset and physical bounds. DBC attributes can supply timing,
+TX modes and signal triggers. An optional YAML policy selects the local node and
+overrides those values, keyed by DBC names. TX direction follows the DBC sender;
+all signals of an RX PDU must name the local node as a receiver. The demo retains
+its full `dbc/can_policy.yaml` and generates the same C as before.
 
 | PDU | CAN ID | DLC | Behavior |
 | --- | --- | --- | --- |
@@ -50,9 +51,85 @@ explicit DBC initial values must fit. Unused TX bits are zero.
 
 Multiplexing, CAN FD, container PDUs, floating-point signals, non-positive scales,
 signals wider than 32 bits, invalid-value markers and ambiguous mappings are
-rejected. Duplicate/unknown policy keys and incomplete policies are errors.
+rejected. Duplicate/unknown policy keys, malformed values and missing required RX timing
+are errors. Policies may override only a subset of PDUs, fields and signals.
 DBC choice values remain numeric raw values in C. The supported subset is
 deliberately bounded; unsupported constructs are not approximated silently.
+
+## DBC-only configuration and YAML overrides
+
+For a custom DBC, select the local node explicitly and optionally supply YAML:
+
+```sh
+python tools/dbc_codegen.py --dbc network.dbc --node ECU --out generated
+python tools/dbc_codegen.py --dbc network.dbc --node ECU --policy overrides.yml --out generated
+python tools/dbc_codegen.py --dbc network.dbc --node ECU --out generated --check
+```
+
+The Python API is `generate(dbc, policy=None, node=None)` (and equivalently
+`model`). No policy is discovered by the Python API or when CLI `--dbc` is
+supplied, even if that path names the demo DBC. For backward compatibility only,
+the CLI without `--dbc` selects `dbc/automotive.dbc` and, when present, the demo's
+`dbc/can_policy.yaml`. An explicitly requested policy must exist.
+
+Use `--node NAME` or YAML `node: NAME`. If both are specified they must agree.
+Automatic selection is permitted only when `BU_` declares exactly one node;
+zero or multiple declared nodes require an explicit choice. The selected node
+must be declared, even if it is named by a sender/receiver elsewhere in the DBC.
+
+For each field, precedence is **explicit YAML > explicit DBC attribute > DBC
+attribute default (`BA_DEF_DEF_`) > generator default**. An override replaces
+only its own field: switching a cyclic message to EVENT also requires setting
+its nonzero period to zero. Invalid or null YAML values are rejected; they do
+not fall back to the DBC. A valid YAML override can replace an unsupported DBC
+value, provided cantools can parse the DBC in the first place.
+
+| Setting | DBC attribute (scope, type) | YAML field | Generator default |
+| --- | --- | --- | --- |
+| TX period | `GenMsgCycleTime` (`BO_`, `INT`) | `period_ms` | 0 |
+| TX mode | `GenMsgSendType` (`BO_`, `ENUM`) | `mode` | PERIODIC if resolved period > 0, otherwise EVENT |
+| TX minimum delay | `GenMsgDelayTime` (`BO_`, `INT`) | `min_delay_ms` | 0 |
+| RX timeout | `ZephyrECU_RxTimeoutMs` (`BO_`, `INT`) | `timeout_ms` | Required; no inferred timeout |
+| TX signal trigger | `ZephyrECU_SignalTrigger` (`SG_`, `ENUM`) | `signals.<signal>` | PENDING |
+
+`GenMsgCycleTime` is widely used; the other names and the following enum mapping
+are the **ZephyrECU convention**, not a promise of compatibility with every DBC
+tool. `GenMsgSendType` labels map as follows: `Cyclic` → PERIODIC, `OnWrite` →
+EVENT, `CyclicAndOnWrite` → MIXED. Enum indices are resolved through their DBC
+definitions, so reordered labels work. Signal trigger labels must be `PENDING`
+or `TRIGGERED_ON_CHANGE`. Other labels, types and invalid indices are rejected
+when used. TX attributes are ignored on RX PDUs; RX timeout attributes are
+ignored on TX PDUs. Unrelated DBC attributes are unaffected.
+
+All times are integer milliseconds bounded by 2147483647. PERIODIC/MIXED require
+a positive period, EVENT requires period 0, minimum delay allows zero, and RX
+timeout must be positive. No default RX timeout is chosen because it determines
+when received data becomes invalid. With no TX timing attributes/overrides, the
+EVENT/PENDING defaults send only on explicit `can_comm_trigger_tx()` requests;
+they create neither periodic traffic nor automatic sends on signal writes.
+
+A partial override can be as small as:
+
+```yaml
+node: ECU
+pdus:
+  ECU_Periodic:
+    period_ms: 75
+    signals:
+      Counter: TRIGGERED_ON_CHANGE
+  Tester_Input:
+    timeout_ms: 600
+```
+
+Root keys are limited to `node` and `pdus`. TX PDU keys are `mode`, `period_ms`,
+`min_delay_ms`, `signals`; RX PDU keys are `timeout_ms`. Unknown PDU/signal names
+and fields, duplicate keys, and non-mapping policies are errors. Missing PDU or
+signal overrides are allowed; empty mappings preserve DBC/default values.
+
+Runnable DBC-only examples live in
+[`tests/codegen/fixtures/dbc_only`](../tests/codegen/fixtures/dbc_only). Tests
+compile and round-trip both examples against cantools, alongside partial YAML,
+attribute defaults, invalid configurations, node selection and CLI checks.
 
 ## Public API and lifecycle
 

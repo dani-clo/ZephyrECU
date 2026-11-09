@@ -23,7 +23,7 @@ REJECTIONS = {
     "bad_timeout": "bounded integer milliseconds",
     "duplicate_policy_key": "duplicate policy key",
     "invalid_identifier": "Invalid syntax",
-    "missing_policy_pdu": "PDU policy: expected exactly",
+    "missing_policy_pdu": "missing RX timeout",
     "negative_scale": "positive finite scale",
     "outside_dlc": "does not fit",
     "over_limit_100_messages": r"expected 1\.\.32 messages",
@@ -68,6 +68,13 @@ class FixtureTests(unittest.TestCase):
                 counts = check_codec(self, ROOT, self.codegen, dbc, dbc.with_suffix(".yaml"))
                 if dbc.stem == "limit_32_messages_128_signals":
                     self.assertEqual(counts, (32, 128))
+
+    def test_dbc_only_round_trips(self):
+        fixtures = sorted((FIXTURES / "dbc_only").glob("*.dbc"))
+        self.assertTrue(fixtures, "no DBC-only fixtures")
+        for dbc in fixtures:
+            with self.subTest(fixture=dbc.name):
+                check_codec(self, ROOT, self.codegen, dbc, node="ECU")
 
     def test_invalid_rejected(self):
         for name, diagnostic in REJECTIONS.items():

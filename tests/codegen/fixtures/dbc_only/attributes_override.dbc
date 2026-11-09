@@ -1,0 +1,39 @@
+VERSION "ZephyrECU DBC attributes and overrides example"
+
+NS_ :
+BS_:
+BU_: ECU Tester
+
+BO_ 288 ECU_Periodic: 2 ECU
+ SG_ Counter : 0|8@1+ (1,0) [0|255] "" Tester
+ SG_ Health : 8|2@1+ (1,0) [0|3] "" Tester
+
+BO_ 289 ECU_Event: 1 ECU
+ SG_ EventFlag : 0|1@1+ (1,0) [0|1] "" Tester
+
+BO_ 290 ECU_Mixed: 2 ECU
+ SG_ Temperature : 0|16@1- (0.1,-40) [-100|100] "degC" Tester
+
+BO_ 544 Tester_Input: 1 Tester
+ SG_ Switch : 0|1@1+ (1,0) [0|1] "" ECU
+
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 2147483647;
+BA_DEF_ BO_ "GenMsgSendType" ENUM "Cyclic","OnWrite","CyclicAndOnWrite";
+BA_DEF_ BO_ "GenMsgDelayTime" INT 0 2147483647;
+BA_DEF_ BO_ "ZephyrECU_RxTimeoutMs" INT 0 2147483647;
+BA_DEF_ SG_ "ZephyrECU_SignalTrigger" ENUM "PENDING","TRIGGERED_ON_CHANGE";
+
+BA_ "GenMsgCycleTime" BO_ 288 50;
+BA_ "GenMsgSendType" BO_ 288 0;
+BA_ "GenMsgDelayTime" BO_ 288 0;
+BA_ "GenMsgCycleTime" BO_ 289 0;
+BA_ "GenMsgSendType" BO_ 289 1;
+BA_ "GenMsgDelayTime" BO_ 289 20;
+BA_ "GenMsgCycleTime" BO_ 290 100;
+BA_ "GenMsgSendType" BO_ 290 2;
+BA_ "GenMsgDelayTime" BO_ 290 10;
+BA_ "ZephyrECU_RxTimeoutMs" BO_ 544 250;
+BA_ "ZephyrECU_SignalTrigger" SG_ 288 Counter 0;
+BA_ "ZephyrECU_SignalTrigger" SG_ 288 Health 0;
+BA_ "ZephyrECU_SignalTrigger" SG_ 289 EventFlag 1;
+BA_ "ZephyrECU_SignalTrigger" SG_ 290 Temperature 1;
