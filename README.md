@@ -9,8 +9,9 @@ Zephyr RTOS. It brings together CAN communication, DBC-generated signals
 and UDS diagnostics through a modular architecture, without the complexity
 of a full AUTOSAR stack.
 
-See the [CAN interface](docs/can-if.md), [communication](docs/can-comm.md)
-[diagnostic](docs/diag-uds.md) and [application task](docs/task-manager.md) contracts for API details and limitations.
+See the [CAN interface](docs/can-if.md), [communication](docs/can-comm.md),
+[diagnostic](docs/diag-uds.md), [application task](docs/task-manager.md) and
+[persistent data](docs/nvm.md) contracts for API details and limitations.
 
 ## Features
 
@@ -18,6 +19,7 @@ See the [CAN interface](docs/can-if.md), [communication](docs/can-comm.md)
 - **DBC-based communication:** generated PDUs/signals, periodic and event-driven TX.
 - **UDS diagnostics:** ISO 14229 via iso14229 with bundled ISO-TP.
 - **Application tasks:** static periodic callbacks and ISR-safe events on one explicit-start thread.
+- **Persistent data:** synchronous versioned NVS records, with SWC-owned persistence workers.
 - **Automated testing:** Zephyr native_sim, SocketCAN integration and Linux/Windows CI.
 
 ## Clone and setup
@@ -61,6 +63,10 @@ controller, pins and bitrate. The demo application also requires `led0` and
 For a new HAL family, add its module (for example, `hal_stm32`) to
 `projects[name=zephyr].import.name-allowlist` in [`west.yml`](west.yml), then run
 `west update` from the workspace root before building.
+
+NVM is enabled by default on UNO Q and native_sim. S32K148 currently lacks
+the required flash driver in the pinned HAL and builds with persistence disabled;
+see the [NVM contract](docs/nvm.md) for partition bounds and validation limits.
 
 The reference target is NXP S32K148 EVB (`s32k148_evb`). Build for it or
 Arduino UNO Q with:

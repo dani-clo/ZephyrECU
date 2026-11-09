@@ -1,0 +1,1 @@
+/ { aliases { ecu-nvm = &storage_partition; }; };

@@ -1,3 +1,19 @@
 mainmenu "ZephyrECU"
 
 source "Kconfig.zephyr"
+
+# Enable persistence only where the application has a configured Zephyr flash
+# device/partition. Other boards must opt in and provide an ecu-nvm alias.
+config ECU_NVM
+	default y if BOARD_NATIVE_SIM || BOARD_ARDUINO_UNO_Q
+
+if ECU_NVM
+config APP_LED_PERSIST_STACK_SIZE
+	int "LED configuration persistence worker stack size"
+	default 2048
+	range 1024 16384
+config APP_LED_PERSIST_PRIORITY
+	int "LED configuration persistence worker preemptive priority"
+	default 8
+	range 0 14
+endif

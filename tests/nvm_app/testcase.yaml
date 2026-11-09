@@ -1,0 +1,10 @@
+tests:
+  zephyrecu.nvm.application:
+    platform_allow:
+      - native_sim
+    integration_platforms:
+      - native_sim
+    tags:
+      - nvm
+      - task_manager
+    timeout: 30

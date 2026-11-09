@@ -1,5 +1,6 @@
 #include "app_tasks.h"
 #include "app_led.h"
+#include "app_led_config.h"
 #include "can_comm.h"
 #include "can_signals.h"
 #include "ecu_task_manager.h"
@@ -8,6 +9,7 @@
 
 LOG_MODULE_REGISTER(app_tasks);
 #define ECU_EVENT_CAN_RX BIT(0)
+#define ECU_EVENT_CONFIG_CHANGED BIT(1)
 
 static void led_main(uint32_t events);
 ECU_TASK_DEFINE(app_led_task, led_main, 100);
@@ -24,7 +26,7 @@ static void on_led_command(can_signal_id_t signal,
 
 static void led_main(uint32_t events)
 {
-	ARG_UNUSED(events);
+	if (events & ECU_EVENT_CONFIG_CHANGED) { app_led_config_request_persistence(); }
 	can_comm_sample_t sample;
 
 	/* Getter copies the latest sample under can_comm's cache mutex. Events
@@ -34,7 +36,7 @@ static void led_main(uint32_t events)
 	int ret = can_comm_get_signal(CAN_SIGNAL_LED_COMMAND_LED_REQUEST, &sample);
 
 	if (ret == 0) {
-		bool on = sample.valid && sample.raw != 0;
+		bool on = app_led_config_enabled() && sample.valid && sample.raw != 0;
 
 		if (on != app_led_get()) { ret = app_led_set(on); }
 	}
@@ -54,6 +56,16 @@ ECU_TASK_DEFINE(app_monitor_task, monitor_main, 10);
 
 int app_tasks_init(void)
 {
-	return can_comm_register_signal_callback(CAN_SIGNAL_LED_COMMAND_LED_REQUEST,
+	int ret = app_led_config_init();
+
+	if (ret == 0) {
+		ret = can_comm_register_signal_callback(CAN_SIGNAL_LED_COMMAND_LED_REQUEST,
 						on_led_command, NULL);
+	}
+	return ret;
+}
+
+int app_tasks_config_changed(void)
+{
+	return ecu_task_notify(app_led_task, ECU_EVENT_CONFIG_CHANGED);
 }

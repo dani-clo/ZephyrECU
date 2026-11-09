@@ -5,6 +5,6 @@ list(APPEND EXTRA_ZEPHYR_MODULES
   ${CMAKE_CURRENT_SOURCE_DIR}/../../components/can_comm)
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(task_manager_contract LANGUAGES C)
-target_sources(app PRIVATE src/main.c ../../app/src/app_led.c ../../app/src/app_tasks.c)
+target_sources(app PRIVATE src/main.c ../../app/src/app_led.c ../../app/src/app_tasks.c ../../app/src/app_led_config.c)
 target_include_directories(app PRIVATE ../../components/task_manager/src ../../app/include)
 target_compile_options(app PRIVATE -Wall -Wextra)

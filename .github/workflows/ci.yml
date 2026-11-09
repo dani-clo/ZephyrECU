@@ -319,6 +319,12 @@ jobs:
             2>&1 | tee build/logs/application-smoke.log
           grep -Fq 'ZephyrECU CAN and diagnostics ready' build/logs/application-smoke.log
 
+      - name: NVM application persistence integration
+        run: |
+          timeout 30s python ZephyrECU/tools/test_nvm_socketcan.py \
+            build/native_sim/zephyr/zephyr.exe --interface vcan0 \
+            2>&1 | tee build/logs/nvm-application-integration.log
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4

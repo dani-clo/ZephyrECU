@@ -1,0 +1,4 @@
+name: nvm
+build:
+  cmake: .
+  kconfig: Kconfig
