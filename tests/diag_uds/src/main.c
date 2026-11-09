@@ -18,6 +18,8 @@ static can_rx_callback_t ingress;
 static int send_failure;
 static int completion_failure;
 static bool oversized_result;
+static bool empty_result;
+static diag_uds_result_t read_result;
 static struct can_frame injected;
 static atomic_t handler_context_errors;
 
@@ -41,8 +43,8 @@ static diag_uds_result_t read_value(uint8_t *out, size_t capacity,
 	zassert_true(capacity >= 2);
 	out[0] = 0x11;
 	out[1] = 0x22;
-	*length = oversized_result ? capacity + 1 : 2;
-	return DIAG_UDS_OK;
+	*length = oversized_result ? capacity + 1 : empty_result ? 0 : 2;
+	return read_result;
 }
 
 static diag_uds_result_t blocked_value(uint8_t *out, size_t capacity,
@@ -83,14 +85,26 @@ static void inject_irq(const void *unused)
 	ingress(dev, &injected, NULL);
 }
 
-static void inject(const uint8_t *data, size_t length)
+static void raw_frame(uint32_t id, const uint8_t *data, size_t length)
 {
-	injected = (struct can_frame){.id = CONFIG_DIAG_UDS_PHYSICAL_RX_ID,
-		.dlc = (uint8_t)(length + 1)};
-	injected.data[0] = (uint8_t)length;
-	memcpy(injected.data + 1, data, length);
+	injected = (struct can_frame){.id = id, .dlc = (uint8_t)length};
+	memcpy(injected.data, data, length);
 	irq_offload(inject_irq, NULL);
 	memset(&injected, 0xa5, sizeof(injected));
+}
+
+static void addressed(uint32_t id, const uint8_t *data, size_t length)
+{
+	uint8_t frame[8] = {(uint8_t)length};
+
+	zassert_true(length <= 7);
+	memcpy(frame + 1, data, length);
+	raw_frame(id, frame, length + 1);
+}
+
+static void inject(const uint8_t *data, size_t length)
+{
+	addressed(CONFIG_DIAG_UDS_PHYSICAL_RX_ID, data, length);
 }
 
 static void expect(const uint8_t *data, size_t length)
@@ -103,11 +117,27 @@ static void expect(const uint8_t *data, size_t length)
 	zassert_mem_equal(frame.data + 1, data, length);
 }
 
+static void irq_lifecycle(const void *unused)
+{
+	ARG_UNUSED(unused);
+	zassert_equal(diag_uds_init(), -EWOULDBLOCK);
+	zassert_equal(diag_uds_start(), -EWOULDBLOCK);
+	zassert_equal(diag_uds_register_did(1, read_value, NULL), -EWOULDBLOCK);
+	zassert_equal(diag_uds_register_routine(1, routine, NULL), -EWOULDBLOCK);
+}
+
 static void lifecycle_and_port(void)
 {
+	irq_offload(irq_lifecycle, NULL);
+	zassert_equal(diag_uds_register_did(1, read_value, NULL), -EACCES);
+	zassert_equal(diag_uds_register_routine(1, routine, NULL), -EACCES);
+	zassert_equal(diag_uds_register_routine(1, NULL, NULL), -EINVAL);
 	zassert_equal(diag_uds_start(), -EACCES);
 	zassert_equal(diag_uds_init(), -EACCES);
 	zassert_ok(can_if_init());
+	fake_can_add_rx_filter_fake.return_val = -ENOSPC;
+	zassert_equal(diag_uds_init(), -ENOSPC);
+	fake_can_add_rx_filter_fake.return_val = 0;
 	zassert_ok(diag_uds_init());
 	zassert_equal(diag_uds_init(), -EALREADY);
 	zassert_equal(diag_uds_register_did(1, NULL, NULL), -EINVAL);
@@ -215,6 +245,178 @@ static void immediate_response_latency(void)
 	}
 }
 
+static void wait_requests(uint32_t expected)
+{
+	int64_t deadline = k_uptime_get() + 100;
+
+	while (stats().requests < expected) {
+		zassert_true(k_uptime_get() < deadline, "request not admitted");
+		k_sleep(K_MSEC(1));
+	}
+}
+
+static void no_response(void)
+{
+	struct can_frame frame;
+
+	zassert_equal(k_msgq_get(&sent_frames, &frame, K_MSEC(10)), -EAGAIN);
+}
+
+static void handler_results(void)
+{
+	const uint8_t nrcs[] = {0x10, 0x12, 0x13, 0x14, 0x22, 0x31};
+
+	for (size_t i = 0; i < ARRAY_SIZE(nrcs); ++i) {
+		read_result = (diag_uds_result_t)nrcs[i];
+		inject((uint8_t[]){0x22, 0, 1}, 3);
+		expect((uint8_t[]){0x7f, 0x22, nrcs[i]}, 3);
+	}
+	read_result = DIAG_UDS_OK;
+	empty_result = true;
+	inject((uint8_t[]){0x22, 0, 1}, 3);
+	expect((uint8_t[]){0x7f, 0x22, 0x10}, 3);
+	empty_result = false;
+	inject((uint8_t[]){0x22, 0xff, 0xff}, 3);
+	expect((uint8_t[]){0x7f, 0x22, 0x31}, 3);
+	inject((uint8_t[]){0x31, 1, 0xff, 0xff}, 4);
+	expect((uint8_t[]){0x7f, 0x31, 0x31}, 3);
+	inject((uint8_t[]){0x31, 1, 0, 1, 0xff}, 5);
+	expect((uint8_t[]){0x7f, 0x31, 0x13}, 3);
+}
+
+static void functional_requests(void)
+{
+	const uint8_t requests[][4] = {{0x34}, {0x10, 2}, {0x22, 0xff, 0xff}, {0x31, 1, 0, 1}};
+	const size_t lengths[] = {1, 2, 3, 4};
+
+	for (size_t i = 0; i < ARRAY_SIZE(requests); ++i) {
+		uint32_t before = stats().suppressed;
+
+		addressed(CONFIG_DIAG_UDS_FUNCTIONAL_RX_ID, requests[i], lengths[i]);
+		no_response();
+		/* iso14229 suppresses its own NRC 0x12/0x31 before the adapter's send;
+		 * admission-level 0x11 responses are counted by the adapter itself. */
+		zassert_equal(stats().suppressed, before + ((i == 0 || i == 3) ? 1 : 0));
+	}
+	/* Functional errors outside the suppression list must still be sent. */
+	addressed(CONFIG_DIAG_UDS_FUNCTIONAL_RX_ID, (uint8_t[]){0x22}, 1);
+	expect((uint8_t[]){0x7f, 0x22, 0x13}, 3);
+	addressed(CONFIG_DIAG_UDS_FUNCTIONAL_RX_ID, (uint8_t[]){0x3e, 0}, 2);
+	expect((uint8_t[]){0x7e, 0}, 2);
+}
+
+static void malformed_frames(void)
+{
+	const struct { uint8_t bytes[8]; uint8_t dlc; bool functional; } cases[] = {
+		{{0x01}, 1, false},              /* DLC too short */
+		{{0x40, 0}, 2, false},          /* unsupported PCI type */
+		{{0, 0}, 2, false},             /* zero SF payload */
+		{{0x08, 0}, 2, false},          /* SF length exceeds Classical CAN */
+		{{0x03, 0x22}, 2, false},       /* SF payload exceeds DLC */
+		{{0x10, 8}, 2, false},          /* FF requires DLC 8 */
+		{{0x10, 7}, 8, false},          /* FF payload must exceed 7 */
+		{{0x30, 0}, 2, false},          /* truncated FC */
+		{{0x10, 8}, 8, true},           /* functional requests must be SF */
+	};
+
+	for (size_t i = 0; i < ARRAY_SIZE(cases); ++i) {
+		uint32_t before = stats().rx_invalid;
+		int64_t deadline = k_uptime_get() + 100;
+
+		raw_frame(cases[i].functional ? CONFIG_DIAG_UDS_FUNCTIONAL_RX_ID :
+			CONFIG_DIAG_UDS_PHYSICAL_RX_ID, cases[i].bytes, cases[i].dlc);
+		while (stats().rx_invalid == before) {
+			zassert_true(k_uptime_get() < deadline, "malformed frame not rejected");
+			k_sleep(K_MSEC(1));
+		}
+		zassert_equal(stats().rx_invalid, before + 1);
+	}
+	/* Valid FC shape while no transmission is active: harmless, no response. */
+	raw_frame(CONFIG_DIAG_UDS_PHYSICAL_RX_ID, (uint8_t[]){0x30, 0, 0}, 3);
+	no_response();
+}
+
+static void session_lifecycle(void)
+{
+	inject((uint8_t[]){0x10, 2}, 2);
+	expect((uint8_t[]){0x7f, 0x10, 0x12}, 3);
+	inject((uint8_t[]){0x10, 3}, 2);
+	expect((uint8_t[]){0x50, 3, 0, 50, 1, 0xf4}, 6);
+	zassert_equal(stats().session, 3);
+	uint32_t timeouts = stats().session_timeouts;
+
+	k_sleep(K_MSEC(3000));
+	uint32_t requests = stats().requests;
+
+	inject((uint8_t[]){0x3e, 0x80}, 2); /* suppressed positive must also refresh S3 */
+	wait_requests(requests + 1);
+	no_response();
+	k_sleep(K_MSEC(3000));
+	zassert_equal(stats().session, 3);
+	zassert_equal(stats().session_timeouts, timeouts);
+	k_sleep(K_MSEC(2200));
+	zassert_equal(stats().session, 1);
+	zassert_equal(stats().session_timeouts, timeouts + 1);
+	inject((uint8_t[]){0x10, 1}, 2);
+	expect((uint8_t[]){0x50, 1, 0, 50, 1, 0xf4}, 6);
+}
+
+static void admission_lengths(void)
+{
+	const uint8_t requests[][4] = {{0x10}, {0x3e}, {0x22}, {0x22, 0, 1, 0}, {0x31, 1, 0}};
+	const size_t lengths[] = {1, 1, 1, 4, 3};
+
+	for (size_t i = 0; i < ARRAY_SIZE(requests); ++i) {
+		inject(requests[i], lengths[i]);
+		expect((uint8_t[]){0x7f, requests[i][0], 0x13}, 3);
+	}
+}
+
+static void response_backpressure(void)
+{
+	uint32_t busy = stats().tx_busy;
+
+	send_failure = -EAGAIN;
+	inject((uint8_t[]){0x3e, 0}, 2);
+	k_sleep(K_MSEC(10));
+	zassert_true(stats().tx_busy > busy);
+	send_failure = 0;
+	expect((uint8_t[]){0x7e, 0}, 2); /* response survives retryable submission */
+	uint32_t errors = stats().transport_errors;
+
+	send_failure = -EIO;
+	inject((uint8_t[]){0x3e, 0}, 2);
+	k_sleep(K_MSEC(10));
+	no_response();
+	zassert_true(stats().transport_errors > errors);
+	send_failure = 0;
+	inject((uint8_t[]){0x3e, 0}, 2);
+	expect((uint8_t[]){0x7e, 0}, 2);
+	errors = stats().transport_errors;
+	send_failure = -EAGAIN;
+	inject((uint8_t[]){0x3e, 0}, 2);
+	k_sleep(K_MSEC(60));
+	zassert_true(stats().transport_errors > errors); /* original P2 deadline, no infinite retry */
+	send_failure = 0;
+	no_response(); /* expired output must not be replayed */
+	inject((uint8_t[]){0x3e, 0}, 2);
+	expect((uint8_t[]){0x7e, 0}, 2);
+}
+
+static void transport_recovery(void)
+{
+	uint32_t errors = stats().transport_errors;
+
+	/* A CF without a preceding FF is a protocol error, counted once. */
+	raw_frame(CONFIG_DIAG_UDS_PHYSICAL_RX_ID, (uint8_t[]){0x21, 0}, 2);
+	k_sleep(K_MSEC(5));
+	zassert_equal(stats().transport_errors, errors + 1);
+	k_sleep(K_MSEC(5));
+	zassert_equal(stats().transport_errors, errors + 1);
+	inject((uint8_t[]){0x3e, 0}, 2);
+	expect((uint8_t[]){0x7e, 0}, 2);
+}
+
 ZTEST(diag_uds, test_contract)
 {
 	lifecycle_and_port();
@@ -241,6 +443,15 @@ ZTEST(diag_uds, test_contract)
 	inject((uint8_t[]){0x3e, 0}, 2);
 	expect((uint8_t[]){0x7e, 0}, 2);
 	queue_overflow();
+	/* Drain the queued suppressed requests before the next checks. */
+	k_sleep(K_MSEC(10));
+	handler_results();
+	functional_requests();
+	malformed_frames();
+	admission_lengths();
+	session_lifecycle();
+	response_backpressure();
+	transport_recovery();
 	zassert_equal(atomic_get(&handler_context_errors), 0);
 	zassert_equal(diag_uds_get_stats(NULL), -EINVAL);
 }

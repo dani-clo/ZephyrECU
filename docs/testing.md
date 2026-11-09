@@ -78,7 +78,10 @@ ZEPHYR_TOOLCHAIN_VARIANT=host python zephyr/scripts/twister \
 These tests use Zephyr's fake CAN driver and require no virtual CAN interface.
 They check filter sharing and capacity, frame validation, ISR/thread context,
 buffer ownership, queue overflow, TX errors, bus-off notifications, diagnostic
-registration, handler NRCs, backpressure and absolute-time wraparound. Twister
+registration, handler NRCs, backpressure and absolute-time wraparound. Diagnostic
+tests also exercise functional NRC suppression, malformed ISO-TP frames, UDS
+admission lengths, session selection/S3 renewal and expiry, P2 retry/deadline
+behavior, ISR API rejection and recovery after transport errors. Twister
 writes results under `build/twister-contracts/`. Communication tests also verify
 signal snapshots, bounds, validity expiry, all three TX modes, coalescing,
 min-delay, periodic phase anchoring and submission/completion errors.
@@ -89,6 +92,14 @@ NVM suites use the Zephyr flash simulator for validated envelopes, CRC corruptio
 backend errors, concurrent writers, sector rotation/full storage, SWC persistence
 ownership and process reboot persistence; see [NVM](nvm.md). Physical power-cycle,
 flash latency and CAN/UDS impact still require target measurements.
+
+`tests/nvm_backend` additionally tests the production NVS adapter with dependency
+fault injection. Linker wrappers supply flash-area/page geometry and NVS results;
+a fake flash device exercises the adapter's real forwarding callbacks. Cases
+cover device readiness, uniform erase pages, partition/sector-count bounds,
+write alignment and record capacity, CRC-vs-driver error classification, short
+writes and recovery after driver failures. The existing `tests/nvm` suite still
+runs against real Zephyr NVS and simulated flash without those wrappers.
 
 Check the committed DBC output and independent codec oracle from the workspace:
 
@@ -274,6 +285,24 @@ contains `index.html` with per-file HTML details and `coverage.txt` with the
 line coverage table. Download and extract the entire artifact to view the HTML
 report with its supporting files. The CI log also reports total line, function
 and branch coverage.
+
+To reproduce the component report locally from the workspace root:
+
+```sh
+ZEPHYR_TOOLCHAIN_VARIANT=host python zephyr/scripts/twister \
+  -T ZephyrECU/tests -p native_sim --coverage --coverage-tool gcovr \
+  --coverage-formats html,txt --coverage-basedir "$PWD/ZephyrECU" \
+  --outdir build/twister-coverage --inline-logs
+mkdir -p build/coverage-components
+gcovr --root "$PWD/ZephyrECU" \
+  --add-tracefile build/twister-coverage/coverage.json \
+  --filter "$PWD/ZephyrECU/components/" \
+  --exclude '.*/generated/.*' --exclude '.*/tests/.*' \
+  --merge-mode-functions=separate \
+  --html-details build/coverage-components/index.html \
+  --txt build/coverage-components/coverage.txt \
+  --json-summary build/coverage-components/summary.json --print-summary
+```
 
 These reports include only `components/`, excluding tests and generated code.
 They measure the code exercised by the Twister suites; the separate SocketCAN
