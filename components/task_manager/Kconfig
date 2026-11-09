@@ -1,0 +1,24 @@
+menuconfig ECU_TASK_MANAGER
+	bool "ZephyrECU application task manager"
+	help
+	  Static lightweight application callbacks on one explicitly started thread.
+
+if ECU_TASK_MANAGER
+
+config ECU_TASK_MANAGER_STACK_SIZE
+	int "Application task thread stack size"
+	default 2048
+	range 1024 32768
+	help
+	  Shared by the deepest callback call chain, including library calls.
+	  Measure stack headroom on the target and increase for application needs.
+
+config ECU_TASK_MANAGER_PRIORITY
+	int "Application task thread preemptive priority"
+	default 7
+	range 0 14
+	help
+	  Default is less urgent than UDS (4), CAN RX (5), and CAN TX (6).
+	  Recheck relative priorities when changing any component configuration.
+
+endif

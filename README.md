@@ -10,13 +10,14 @@ and UDS diagnostics through a modular architecture, without the complexity
 of a full AUTOSAR stack.
 
 See the [CAN interface](docs/can-if.md), [communication](docs/can-comm.md)
-and [diagnostic](docs/diag-uds.md) contracts for API details and limitations.
+[diagnostic](docs/diag-uds.md) and [application task](docs/task-manager.md) contracts for API details and limitations.
 
 ## Features
 
 - **CAN interface:** RX filtering, callback dispatching and asynchronous TX.
 - **DBC-based communication:** generated PDUs/signals, periodic and event-driven TX.
 - **UDS diagnostics:** ISO 14229 via iso14229 with bundled ISO-TP.
+- **Application tasks:** static periodic callbacks and ISR-safe events on one explicit-start thread.
 - **Automated testing:** Zephyr native_sim, SocketCAN integration and Linux/Windows CI.
 
 ## Clone and setup
