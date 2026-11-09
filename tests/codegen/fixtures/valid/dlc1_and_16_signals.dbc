@@ -1,0 +1,28 @@
+VERSION "ZephyrECU CI fixtures"
+NS_ :
+BS_:
+BU_: ECU Tester
+
+BO_ 291 Standard: 1 Tester
+ SG_ Value : 0|8@1+ (1,0) [0|255] "" ECU
+
+BO_ 2147483939 ExtendedSameId: 1 Tester
+ SG_ Value : 7|8@0- (1,0) [-128|127] "" ECU
+
+BO_ 512 SixteenSignals: 2 ECU
+ SG_ Bit00 : 0|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit01 : 1|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit02 : 2|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit03 : 3|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit04 : 4|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit05 : 5|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit06 : 6|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit07 : 7|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit08 : 8|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit09 : 9|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit10 : 10|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit11 : 11|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit12 : 12|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit13 : 13|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit14 : 14|1@1+ (1,0) [0|1] "" Tester
+ SG_ Bit15 : 15|1@1+ (1,0) [0|1] "" Tester

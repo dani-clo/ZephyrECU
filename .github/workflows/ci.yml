@@ -10,6 +10,36 @@ permissions:
   contents: read
 
 jobs:
+  codegen:
+    name: DBC fixtures and compiled codec oracle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install codegen dependencies
+        run: python -m pip install -r tools/requirements-codegen.txt
+
+      - name: Validate fixtures and round-trip every signal against cantools
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests/codegen -v 2>&1 | tee codegen-tests.log
+
+      - name: Upload codegen test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codegen-test-results
+          path: codegen-tests.log
+          if-no-files-found: warn
+
   windows-build:
     name: Windows firmware build (${{ matrix.board }})
     runs-on: windows-2022
@@ -151,12 +181,6 @@ jobs:
             -r zephyr/scripts/requirements-build-test.txt \
             -r zephyr/scripts/requirements-run-test.txt \
             -r ZephyrECU/tools/requirements-codegen.txt
-
-      - name: Check DBC generation and codec
-        run: |
-          python ZephyrECU/tools/dbc_codegen.py --check
-          python -m unittest discover -s ZephyrECU/tests/codegen -v \
-            2>&1 | tee build/logs/codegen-tests.log
 
       - name: Run unit tests with coverage
         run: |
@@ -337,7 +361,7 @@ jobs:
 
   publish-coverage:
     name: Publish coverage report
-    needs: [native-sim, windows-build]
+    needs: [codegen, native-sim, windows-build]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     permissions:

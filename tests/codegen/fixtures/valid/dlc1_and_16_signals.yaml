@@ -1,0 +1,27 @@
+node: ECU
+pdus:
+  Standard:
+    timeout_ms: 100
+  ExtendedSameId:
+    timeout_ms: 100
+  SixteenSignals:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 0
+    signals:
+      Bit00: PENDING
+      Bit01: PENDING
+      Bit02: PENDING
+      Bit03: PENDING
+      Bit04: PENDING
+      Bit05: PENDING
+      Bit06: PENDING
+      Bit07: PENDING
+      Bit08: PENDING
+      Bit09: PENDING
+      Bit10: PENDING
+      Bit11: PENDING
+      Bit12: PENDING
+      Bit13: PENDING
+      Bit14: PENDING
+      Bit15: PENDING

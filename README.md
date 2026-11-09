@@ -97,3 +97,7 @@ run the unit tests, integration tests and application smoke test with:
 
 See [Testing](docs/testing.md) for Docker and native virtual environment setup,
 unit tests, integration tests, manual CAN checks and GitHub Actions.
+
+DBC generator tests and compiled C round-trips against cantools can be run with
+`python -m unittest discover -s tests/codegen -v`; see the
+[fixture suite](tests/codegen/fixtures/README.md) for dependencies and coverage.

@@ -1,0 +1,4 @@
+node: Unknown
+pdus:
+  Malformed:
+    timeout_ms: 100

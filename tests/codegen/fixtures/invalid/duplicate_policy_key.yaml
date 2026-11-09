@@ -1,0 +1,6 @@
+node: ECU
+pdus:
+  Malformed:
+    timeout_ms: 100
+  Malformed:
+    timeout_ms: 99

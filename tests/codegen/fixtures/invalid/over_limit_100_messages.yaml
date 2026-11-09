@@ -1,0 +1,552 @@
+node: ECU
+pdus:
+  Fixture000:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture001:
+    timeout_ms: 100
+  Fixture002:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture003:
+    timeout_ms: 100
+  Fixture004:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture005:
+    timeout_ms: 100
+  Fixture006:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture007:
+    timeout_ms: 100
+  Fixture008:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture009:
+    timeout_ms: 100
+  Fixture010:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture011:
+    timeout_ms: 100
+  Fixture012:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture013:
+    timeout_ms: 100
+  Fixture014:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture015:
+    timeout_ms: 100
+  Fixture016:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture017:
+    timeout_ms: 100
+  Fixture018:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture019:
+    timeout_ms: 100
+  Fixture020:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture021:
+    timeout_ms: 100
+  Fixture022:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture023:
+    timeout_ms: 100
+  Fixture024:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture025:
+    timeout_ms: 100
+  Fixture026:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture027:
+    timeout_ms: 100
+  Fixture028:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture029:
+    timeout_ms: 100
+  Fixture030:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture031:
+    timeout_ms: 100
+  Fixture032:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture033:
+    timeout_ms: 100
+  Fixture034:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture035:
+    timeout_ms: 100
+  Fixture036:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture037:
+    timeout_ms: 100
+  Fixture038:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture039:
+    timeout_ms: 100
+  Fixture040:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture041:
+    timeout_ms: 100
+  Fixture042:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture043:
+    timeout_ms: 100
+  Fixture044:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture045:
+    timeout_ms: 100
+  Fixture046:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture047:
+    timeout_ms: 100
+  Fixture048:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture049:
+    timeout_ms: 100
+  Fixture050:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture051:
+    timeout_ms: 100
+  Fixture052:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture053:
+    timeout_ms: 100
+  Fixture054:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture055:
+    timeout_ms: 100
+  Fixture056:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture057:
+    timeout_ms: 100
+  Fixture058:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture059:
+    timeout_ms: 100
+  Fixture060:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture061:
+    timeout_ms: 100
+  Fixture062:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture063:
+    timeout_ms: 100
+  Fixture064:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture065:
+    timeout_ms: 100
+  Fixture066:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture067:
+    timeout_ms: 100
+  Fixture068:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture069:
+    timeout_ms: 100
+  Fixture070:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture071:
+    timeout_ms: 100
+  Fixture072:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture073:
+    timeout_ms: 100
+  Fixture074:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture075:
+    timeout_ms: 100
+  Fixture076:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture077:
+    timeout_ms: 100
+  Fixture078:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture079:
+    timeout_ms: 100
+  Fixture080:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture081:
+    timeout_ms: 100
+  Fixture082:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture083:
+    timeout_ms: 100
+  Fixture084:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture085:
+    timeout_ms: 100
+  Fixture086:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture087:
+    timeout_ms: 100
+  Fixture088:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture089:
+    timeout_ms: 100
+  Fixture090:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture091:
+    timeout_ms: 100
+  Fixture092:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture093:
+    timeout_ms: 100
+  Fixture094:
+    mode: MIXED
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture095:
+    timeout_ms: 100
+  Fixture096:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture097:
+    timeout_ms: 100
+  Fixture098:
+    mode: EVENT
+    period_ms: 0
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING
+  Fixture099:
+    timeout_ms: 100

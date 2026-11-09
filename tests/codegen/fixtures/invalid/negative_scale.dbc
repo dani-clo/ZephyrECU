@@ -1,0 +1,7 @@
+VERSION "ZephyrECU CI fixtures"
+NS_ :
+BS_:
+BU_: ECU Tester
+
+BO_ 291 Malformed: 2 Tester
+ SG_ Value : 0|8@1+ (-1,0) [0|255] "" ECU

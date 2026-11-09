@@ -1,0 +1,11 @@
+node: ECU
+pdus:
+  Fixture000:
+    mode: PERIODIC
+    period_ms: 50
+    min_delay_ms: 10
+    signals:
+      Sig00: TRIGGERED_ON_CHANGE
+      Sig01: PENDING
+      Sig02: PENDING
+      Sig03: PENDING

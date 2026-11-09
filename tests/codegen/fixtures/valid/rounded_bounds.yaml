@@ -1,0 +1,4 @@
+node: ECU
+pdus:
+  Rounded:
+    timeout_ms: 100

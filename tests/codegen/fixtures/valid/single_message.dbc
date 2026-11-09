@@ -1,0 +1,10 @@
+VERSION "ZephyrECU CI fixtures"
+NS_ :
+BS_:
+BU_: ECU Tester
+
+BO_ 512 Fixture000: 8 ECU
+ SG_ Sig00 : 0|16@1+ (1,0) [0|65535] "" Tester
+ SG_ Sig01 : 23|16@0- (1,0) [-32768|32767] "" Tester
+ SG_ Sig02 : 32|16@1+ (1,0) [0|65535] "" Tester
+ SG_ Sig03 : 55|16@0- (1,0) [-32768|32767] "" Tester

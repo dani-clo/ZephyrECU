@@ -1,0 +1,66 @@
+node: ECU
+pdus:
+  Width01:
+    timeout_ms: 100
+  Width02:
+    timeout_ms: 100
+  Width03:
+    timeout_ms: 100
+  Width04:
+    timeout_ms: 100
+  Width05:
+    timeout_ms: 100
+  Width06:
+    timeout_ms: 100
+  Width07:
+    timeout_ms: 100
+  Width08:
+    timeout_ms: 100
+  Width09:
+    timeout_ms: 100
+  Width10:
+    timeout_ms: 100
+  Width11:
+    timeout_ms: 100
+  Width12:
+    timeout_ms: 100
+  Width13:
+    timeout_ms: 100
+  Width14:
+    timeout_ms: 100
+  Width15:
+    timeout_ms: 100
+  Width16:
+    timeout_ms: 100
+  Width17:
+    timeout_ms: 100
+  Width18:
+    timeout_ms: 100
+  Width19:
+    timeout_ms: 100
+  Width20:
+    timeout_ms: 100
+  Width21:
+    timeout_ms: 100
+  Width22:
+    timeout_ms: 100
+  Width23:
+    timeout_ms: 100
+  Width24:
+    timeout_ms: 100
+  Width25:
+    timeout_ms: 100
+  Width26:
+    timeout_ms: 100
+  Width27:
+    timeout_ms: 100
+  Width28:
+    timeout_ms: 100
+  Width29:
+    timeout_ms: 100
+  Width30:
+    timeout_ms: 100
+  Width31:
+    timeout_ms: 100
+  Width32:
+    timeout_ms: 100
