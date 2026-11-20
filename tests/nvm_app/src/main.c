@@ -50,7 +50,7 @@ static void wait_saved(void)
 
 ZTEST(nvm_app, test_ownership_and_updates)
 {
-	zassert_ok(flash_erase(flash, DT_REG_ADDR(DT_ALIAS(ecu_nvm)),
+	zassert_ok(flash_erase(flash, PARTITION_NODE_OFFSET(DT_ALIAS(ecu_nvm)),
 			       DT_REG_SIZE(DT_ALIAS(ecu_nvm))));
 	zassert_ok(app_led_init());
 	zassert_ok(can_if_init());

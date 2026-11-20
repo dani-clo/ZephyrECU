@@ -1,4 +1,4 @@
-# Python 3.12 / Linux amd64; Zephyr v4.4.2 tests and tools/requirements-codegen.txt.
+# Python 3.12 / Linux amd64; Zephyr v4.5.0 tests and tools/requirements-codegen.txt.
 # Includes west and all transitive packages. Update deliberately; see docs/container-ci.md.
 anytree==2.13.0
 appdirs==1.4.4
@@ -23,20 +23,24 @@ coverage==7.17.0
 crccheck==1.3.1
 docopt==0.6.2
 gcovr==8.7
+halo==0.0.31
+html5rdf==1.2.1
 idna==3.20
+ifaddr==0.2.0
 importlib_metadata==9.1.0
 importlib_resources==7.1.0
 iniconfig==2.3.1
 intelhex==2.3.0
 intervaltree==3.2.1
 Jinja2==3.1.6
-jsonschema-specifications==2025.9.1
 jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
 junitparser==5.0.3
 lark==1.3.1
 librt==0.16.0
 libusb-package==1.0.30.0
 license-expression==30.4.4
+log-symbols==0.0.14
 lxml==6.1.3
 MarkupSafe==3.0.4
 mypy==2.4.0
@@ -44,6 +48,7 @@ mypy_extensions==1.1.0
 natsort==8.4.0
 numpy==2.5.4
 opencv-python==5.0.0.93
+owlrl==7.6.2
 packaging==26.3
 pathspec==1.1.1
 patool==4.1.0
@@ -59,6 +64,7 @@ pylink-square==1.7.0
 pyocd==0.46.0
 pyparsing==3.3.3
 pyserial==3.5
+pyshacl==0.40.2
 pytest==9.1.1
 python-can==4.6.1
 python-dateutil==3.0.0
@@ -77,8 +83,12 @@ semantic-version==2.10.0
 semver==3.1.0
 six==1.17.0
 sortedcontainers==2.4.0
+spdx-python-model==0.0.6
 spdx-tools==0.8.5
+spdx3-validate==0.0.7
+spinners==0.0.24
 tabulate==0.10.0
+termcolor==3.3.0
 textparser==0.26.2
 tomlkit==0.15.2
 tqdm==4.70.1
@@ -90,4 +100,5 @@ wcwidth==0.9.3
 west==1.5.0
 wrapt==1.17.3
 xmltodict==1.0.4
+zeroconf==0.154.0
 zipp==4.1.2

@@ -55,7 +55,7 @@ IDs are allocated at compile time by components, with no runtime allocator:
 | `0x1000..0xFFFE` | SWCs; LED configuration owns `0x1000` |
 | `0xFFFF` | Forbidden: NVS uses it for sector-close/GC/free markers |
 
-The NVS restriction was checked in the pinned Zephyr v4.4.2
+The NVS restriction was checked in the pinned Zephyr v4.5.0
 `subsys/kvss/nvs/nvs.c`, including sector-close and GC-done ATE construction. Do
 not infer that all uint16 values are usable application IDs merely from NVS's
 function signatures. Framework/SWC range ownership is a compile-time convention;
@@ -142,10 +142,17 @@ geometry fails with `-ENODEV`. Missing alias/driver fails at build or init.
 | native_sim | Existing `storage_partition`, `0xFC000..0x100000`, 16 KiB | 4 × 4096-byte sectors; 1-byte programming | NVM enabled; simulated persistence |
 | S32K148 EVB | None allocated or modified | DT describes 4096-byte erase / 8-byte program, but driver unavailable | NVM disabled; startup explicitly warns |
 
-UNO Q's upstream node name is `partition@f0000`, but its **reg value** is
-`0xE0000`, which is the actual partition offset. The alias reuses that existing
+UNO Q's upstream node is `partition@e0000` (named `partition@f0000` before
+Zephyr v4.5.0, with the same `0xE0000` reg value). The alias reuses that existing
 area exclusively. Boot (`0..0x10000`), image-0 (`0x10000..0x78000`), image-1
 (`0x78000..0xE0000`) and storage partition offsets/sizes are unchanged.
+
+The `ecu-nvm` alias may target a `zephyr,mapped-partition` node (the binding
+used by in-tree boards since Zephyr v4.5.0) or a child of a legacy
+`fixed-partitions` node. Mapped partitions translate `reg` through `ranges`, so
+`DT_REG_ADDR()` yields a CPU address (UNO Q: `0x080E0000`). The component and
+tests therefore use `PARTITION_NODE_OFFSET()` for flash offsets and the
+linker-overlap assertion.
 
 Fixed partitions alone do not constrain the Zephyr linker. The existing UNO Q
 application uses direct boot at `0x08000000`, without

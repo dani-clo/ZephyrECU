@@ -7,7 +7,8 @@ filters, raw RX dispatch and raw TX. No client calls Zephyr CAN APIs.
 ## Lifecycle and routing
 
 Call `can_if_init()`, register all RX consumers, then call `can_if_start()` from
-thread context. Device readiness and driver errors are checked. Repeating a
+thread context. Device readiness and driver errors are checked, including the
+driver's error when init registers the controller state-change callback. Repeating a
 successful init/start returns `-EALREADY`; a failed operation may be retried.
 Concurrent lifecycle operations return `-EBUSY` rather than waiting. Successful
 start freezes the registry; there is no runtime unregister, stop/restart or
@@ -112,7 +113,7 @@ counters. `tx_busy` counts local contention separately from driver rejections.
 
 ## Native driver limitations
 
-Pinned Zephyr v4.4.2's native driver does not implement state-change notifications
+Pinned Zephyr v4.5.0's native driver does not implement state-change notifications
 and reports error-active/zero error counts while started. It cannot validate
 physical bus-off or electrical errors. Unit tests inject those events through
 Zephyr's fake driver; physical verification requires the board.

@@ -12,7 +12,6 @@ DEFINE_FFF_GLOBALS;
 
 static const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_canbus));
 static can_rx_callback_t ingress;
-static can_state_change_callback_t state_callback;
 static can_tx_callback_t completion;
 static void *completion_context;
 static const struct can_frame *retained_tx;
@@ -116,11 +115,18 @@ static void lifecycle_and_filters(void)
 	fake_can_set_mode_fake.return_val = -EIO;
 	zassert_equal(can_if_init(), -EIO);
 	fake_can_set_mode_fake.return_val = 0;
+	/* A failed driver enable must unlink the callback and leave init retryable. */
+	fake_can_state_change_callbacks_enabled_fake.return_val = -EIO;
+	zassert_equal(can_if_init(), -EIO);
+	zassert_equal(fake_can_state_change_callbacks_enabled_fake.call_count, 2);
+	zassert_false(fake_can_state_change_callbacks_enabled_fake.arg1_val);
+	zassert_equal(can_if_start(), -EACCES);
+	fake_can_state_change_callbacks_enabled_fake.return_val = 0;
 	zassert_ok(can_if_init());
 	zassert_equal(can_if_init(), -EALREADY);
 	zassert_equal(fake_can_set_mode_fake.arg1_val, CAN_MODE_NORMAL);
-	state_callback = fake_can_set_state_change_callback_fake.arg1_val;
-	zassert_not_null(state_callback);
+	zassert_equal(fake_can_state_change_callbacks_enabled_fake.call_count, 3);
+	zassert_true(fake_can_state_change_callbacks_enabled_fake.arg1_val);
 	zassert_equal(can_if_register_rx(0x800, false, rx, NULL), -EINVAL);
 	zassert_equal(can_if_register_rx(0x20000000, true, rx, NULL), -EINVAL);
 	zassert_equal(can_if_register_rx(0x100, false, NULL, NULL), -EINVAL);
@@ -293,8 +299,9 @@ static void tx_failures_and_ownership(void)
 static void state_irq(const void *unused)
 {
 	ARG_UNUSED(unused);
-	state_callback(dev, CAN_STATE_BUS_OFF,
-		       (struct can_bus_err_cnt){.tx_err_cnt = 255, .rx_err_cnt = 17}, NULL);
+	/* Drivers report state changes in ISR context through the common helper. */
+	can_fire_state_change_callbacks(dev, CAN_STATE_BUS_OFF,
+					(struct can_bus_err_cnt){.tx_err_cnt = 255, .rx_err_cnt = 17});
 }
 
 

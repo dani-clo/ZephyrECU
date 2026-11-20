@@ -61,7 +61,7 @@ pip install -r zephyr/scripts/requirements-base.txt \
 west manifest --validate
 ```
 
-`west.yml` selects Zephyr v4.4.2 and a fixed iso14229 commit; `west-frozen.yml`
+`west.yml` selects Zephyr v4.5.0 and a fixed iso14229 commit; `west-frozen.yml`
 records the resolved dependency SHAs. Run all commands below from the workspace
 root, with the virtual environment active.
 

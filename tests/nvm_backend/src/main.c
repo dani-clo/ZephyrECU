@@ -73,7 +73,7 @@ DEVICE_DEFINE(backend_test_flash, "backend_test_flash", NULL, NULL, NULL, NULL,
 
 int __wrap_flash_area_open(uint8_t id, const struct flash_area **out)
 {
-	zassert_equal(id, DT_FIXED_PARTITION_ID(DT_ALIAS(ecu_nvm)));
+	zassert_equal(id, DT_PARTITION_ID(DT_ALIAS(ecu_nvm)));
 	*out = &area;
 	return open_result;
 }

@@ -27,6 +27,8 @@ static struct route routes[CONFIG_CAN_IF_MAX_ROUTES];
 static size_t route_count;
 static bool initialized;
 static atomic_t started;
+/* Registered once by can_if_init() and kept for the controller's lifetime. */
+static struct can_state_change_callback state_callback;
 K_MUTEX_DEFINE(lifecycle_lock);
 K_MUTEX_DEFINE(submit_lock);
 K_MSGQ_DEFINE(rx_queue, sizeof(struct can_frame), CONFIG_CAN_IF_RX_QUEUE_SIZE, 4);
@@ -64,11 +66,11 @@ static can_if_state_t convert_state(enum can_state state)
 	}
 }
 
-static void state_changed(const struct device *dev, enum can_state state,
-			  struct can_bus_err_cnt errors, void *context)
+static void state_changed(const struct device *dev, struct can_state_change_callback *callback,
+			  enum can_state state, struct can_bus_err_cnt errors)
 {
 	ARG_UNUSED(dev);
-	ARG_UNUSED(context);
+	ARG_UNUSED(callback);
 	atomic_set(&last_state, convert_state(state));
 	atomic_set(&tx_error_count, errors.tx_err_cnt);
 	atomic_set(&rx_error_count, errors.rx_err_cnt);
@@ -149,7 +151,15 @@ int can_if_init(void)
 		/* Explicit normal mode excludes FD and loopback. Bitrate stays in DT. */
 		ret = can_set_mode(controller, CAN_MODE_NORMAL);
 		if (ret == 0) {
-			can_set_state_change_callback(controller, state_changed, NULL);
+			can_init_state_change_callback(&state_callback, state_changed);
+			ret = can_add_state_change_callback(controller, &state_callback);
+			if (ret != 0) {
+				/* The node is linked even when driver enable fails. */
+				(void)can_remove_state_change_callback(controller,
+								       &state_callback);
+			}
+		}
+		if (ret == 0) {
 			initialized = true;
 		}
 	}

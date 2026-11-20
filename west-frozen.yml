@@ -6,7 +6,7 @@ manifest:
   projects:
   - name: zephyr
     url: https://github.com/zephyrproject-rtos/zephyr
-    revision: dccb09599635bdff17633fa7e9dab014b91dce90
+    revision: 41d10b59730406bbab4ca9f1fbbe9e96aafb4966
     west-commands: scripts/west-commands.yml
   - name: iso14229
     url: https://github.com/driftregion/iso14229
@@ -14,25 +14,25 @@ manifest:
     path: modules/lib/iso14229
   - name: cmsis_6
     url: https://github.com/zephyrproject-rtos/CMSIS_6
-    revision: 30a859f44ef8ab4dc8f84b03ed586fd16ccf9d74
+    revision: 1c1840af7a7e757d6e2fec3ddb0e5ce0dfcc93c8
     path: modules/hal/cmsis_6
     groups:
     - hal
   - name: hal_infineon
     url: https://github.com/zephyrproject-rtos/hal_infineon
-    revision: 3ae25facf70c296145f6e12aa10b4810d49c2b33
+    revision: eae914ed1ad0b54af28191d13da9b8e98fb5cb2b
     path: modules/hal/infineon
     groups:
     - hal
   - name: hal_nxp
     url: https://github.com/zephyrproject-rtos/hal_nxp
-    revision: 7554bc0f6f6c284972eba7b2c17b16fbb9cc0ad0
+    revision: a8b437ef366ff9a6f9bee3377dc189c4d2623f5b
     path: modules/hal/nxp
     groups:
     - hal
   - name: hal_stm32
     url: https://github.com/zephyrproject-rtos/hal_stm32
-    revision: fc11896dd39cfca37bf9b4aeaaa2df8861b81875
+    revision: c9550199186236d610092f4005f8c9bae2a6bfcf
     path: modules/hal/stm32
     groups:
     - hal

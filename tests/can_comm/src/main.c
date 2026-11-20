@@ -10,6 +10,21 @@
 #include <zephyr/ztest.h>
 
 DEFINE_FFF_GLOBALS;
+
+/* Zephyr 4.5's fake get_state reports STOPPED by default; model a started controller. */
+static int started_state(const struct device *device, enum can_state *state,
+			 struct can_bus_err_cnt *errors)
+{
+	ARG_UNUSED(device);
+	if (state != NULL) {
+		*state = CAN_STATE_ERROR_ACTIVE;
+	}
+	if (errors != NULL) {
+		*errors = (struct can_bus_err_cnt){0};
+	}
+	return 0;
+}
+
 extern const k_tid_t comm_id;
 static const struct device *const dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_canbus));
 static can_rx_callback_t ingress;
@@ -156,6 +171,7 @@ static void lifecycle(void)
 	zassert_equal(can_signal_status_periodic_led_status_set_raw(2), -ERANGE);
 	zassert_equal(can_comm_trigger_tx(CAN_PDU_STATUS_PERIODIC), -EACCES);
 	zassert_equal(can_comm_trigger_tx(CAN_PDU_LED_COMMAND), -EACCES);
+	fake_can_get_state_fake.custom_fake = started_state;
 	zassert_ok(can_if_start());
 	fake_can_send_fake.custom_fake = send_frame;
 	zassert_ok(can_comm_start());

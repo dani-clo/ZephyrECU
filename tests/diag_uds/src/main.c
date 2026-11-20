@@ -10,6 +10,21 @@
 #include <zephyr/ztest.h>
 
 DEFINE_FFF_GLOBALS;
+
+/* Zephyr 4.5's fake get_state reports STOPPED by default; model a started controller. */
+static int started_state(const struct device *device, enum can_state *state,
+			 struct can_bus_err_cnt *errors)
+{
+	ARG_UNUSED(device);
+	if (state != NULL) {
+		*state = CAN_STATE_ERROR_ACTIVE;
+	}
+	if (errors != NULL) {
+		*errors = (struct can_bus_err_cnt){0};
+	}
+	return 0;
+}
+
 K_MSGQ_DEFINE(sent_frames, sizeof(struct can_frame), 32, 4);
 K_SEM_DEFINE(handler_entered, 0, 1);
 K_SEM_DEFINE(handler_release, 0, 1);
@@ -150,6 +165,7 @@ static void lifecycle_and_port(void)
 	zassert_ok(diag_uds_register_routine(2, routine, NULL));
 	zassert_equal(diag_uds_register_routine(3, routine, NULL), -ENOSPC);
 	zassert_equal(diag_uds_start(), -EACCES);
+	fake_can_get_state_fake.custom_fake = started_state;
 	zassert_ok(can_if_start());
 	ingress = fake_can_add_rx_filter_fake.arg1_val;
 	fake_can_send_fake.custom_fake = capture;

@@ -16,7 +16,7 @@ ZTEST(nvm_reboot, test_records_survive_reboot)
 	if (!(cause & RESET_SOFTWARE)) {
 		const struct device *flash = PARTITION_NODE_DEVICE(DT_ALIAS(ecu_nvm));
 
-		zassert_ok(flash_erase(flash, DT_REG_ADDR(DT_ALIAS(ecu_nvm)),
+		zassert_ok(flash_erase(flash, PARTITION_NODE_OFFSET(DT_ALIAS(ecu_nvm)),
 				       DT_REG_SIZE(DT_ALIAS(ecu_nvm))));
 		zassert_ok(ecu_nvm_init());
 		zassert_ok(ecu_nvm_write(0x1010, 1, &value, sizeof(value)));

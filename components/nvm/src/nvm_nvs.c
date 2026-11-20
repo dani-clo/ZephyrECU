@@ -10,16 +10,20 @@
 #if !DT_NODE_EXISTS(NVM_PARTITION)
 #error "ECU_NVM requires an ecu-nvm alias to an exclusive fixed flash partition"
 #endif
-BUILD_ASSERT(DT_NODE_HAS_COMPAT(DT_PARENT(NVM_PARTITION), fixed_partitions),
+/* Accept both zephyr,mapped-partition nodes and legacy fixed-partitions children. */
+BUILD_ASSERT(DT_NODE_HAS_COMPAT(NVM_PARTITION, zephyr_mapped_partition) ||
+	     DT_NODE_HAS_COMPAT(DT_PARENT(NVM_PARTITION), fixed_partitions),
 	     "ECU_NVM requires a fixed partition");
 /* With XIP on the same flash, merely declaring fixed partitions does not
  * reserve them in Zephyr's linker. Require an explicit nonoverlapping image
  * region (or USE_DT_CODE_PARTITION, which derives LOAD_SIZE automatically).
+ * Compare flash offsets: mapped partitions' DT_REG_ADDR is a CPU address.
  */
-#if defined(CONFIG_XIP) && DT_SAME_NODE(DT_GPARENT(NVM_PARTITION), DT_CHOSEN(zephyr_flash))
+#define NVM_OFFSET PARTITION_NODE_OFFSET(NVM_PARTITION)
+#if defined(CONFIG_XIP) && DT_SAME_NODE(DT_MEM_FROM_PARTITION(NVM_PARTITION), DT_CHOSEN(zephyr_flash))
 BUILD_ASSERT(CONFIG_FLASH_LOAD_SIZE > 0 &&
-	     (CONFIG_FLASH_LOAD_OFFSET + CONFIG_FLASH_LOAD_SIZE <= DT_REG_ADDR(NVM_PARTITION) ||
-	      CONFIG_FLASH_LOAD_OFFSET >= DT_REG_ADDR(NVM_PARTITION) + DT_REG_SIZE(NVM_PARTITION)),
+	     (CONFIG_FLASH_LOAD_OFFSET + CONFIG_FLASH_LOAD_SIZE <= NVM_OFFSET ||
+	      CONFIG_FLASH_LOAD_OFFSET >= NVM_OFFSET + DT_REG_SIZE(NVM_PARTITION)),
 	     "ECU_NVM: bound the linked flash image away from the NVM partition");
 #endif
 BUILD_ASSERT(!IS_ENABLED(CONFIG_NVS_INIT_BAD_MEMORY_REGION),
@@ -86,7 +90,7 @@ static int result(int ret)
 
 int ecu_nvm_backend_init(void)
 {
-	int ret = flash_area_open(DT_FIXED_PARTITION_ID(NVM_PARTITION), &area);
+	int ret = flash_area_open(DT_PARTITION_ID(NVM_PARTITION), &area);
 
 	if (ret != 0 || !device_is_ready(area->fa_dev)) { return -ENODEV; }
 	struct flash_pages_info page;

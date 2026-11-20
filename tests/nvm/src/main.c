@@ -38,8 +38,8 @@ static void raw_mount(void)
 {
 	struct flash_pages_info page;
 
-	zassert_ok(flash_get_page_info_by_offs(flash, DT_REG_ADDR(PART), &page));
-	raw = (struct nvs_fs){.flash_device = flash, .offset = DT_REG_ADDR(PART),
+	zassert_ok(flash_get_page_info_by_offs(flash, PARTITION_NODE_OFFSET(PART), &page));
+	raw = (struct nvs_fs){.flash_device = flash, .offset = PARTITION_NODE_OFFSET(PART),
 		.sector_size = page.size, .sector_count = DT_REG_SIZE(PART) / page.size};
 	zassert_ok(nvs_mount(&raw));
 }
@@ -70,7 +70,7 @@ ZTEST(nvm, test_contract)
 {
 	uint32_t value = 0x12345678, output = 0xa5a5a5a5;
 
-	zassert_ok(flash_erase(flash, DT_REG_ADDR(PART), DT_REG_SIZE(PART)));
+	zassert_ok(flash_erase(flash, PARTITION_NODE_OFFSET(PART), DT_REG_SIZE(PART)));
 
 	zassert_equal(ecu_nvm_read(0x1000, 1, &output, sizeof(output)), -EACCES);
 	zassert_equal(ecu_nvm_write(0x1000, 1, &value, sizeof(value)), -EACCES);
@@ -80,10 +80,10 @@ ZTEST(nvm, test_contract)
 	 * deliberate external repair. It must never autoformat a bad region.
 	 */
 	memory = flash_simulator_get_memory(flash, &memory_size);
-	memset(memory + DT_REG_ADDR(PART), 0, DT_REG_SIZE(PART));
+	memset(memory + PARTITION_NODE_OFFSET(PART), 0, DT_REG_SIZE(PART));
 	zassert_equal(ecu_nvm_init(), -EBADMSG);
-	zassert_equal(memory[DT_REG_ADDR(PART)], 0);
-	zassert_ok(flash_erase(flash, DT_REG_ADDR(PART), DT_REG_SIZE(PART)));
+	zassert_equal(memory[PARTITION_NODE_OFFSET(PART)], 0);
+	zassert_ok(flash_erase(flash, PARTITION_NODE_OFFSET(PART), DT_REG_SIZE(PART)));
 	zassert_ok(ecu_nvm_init());
 	zassert_ok(ecu_nvm_init());
 	zassert_equal(ecu_nvm_read(0x1000, 1, &output, sizeof(output)), -ENOENT);
